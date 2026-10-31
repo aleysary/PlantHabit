@@ -1,0 +1,146 @@
+<title>Verdant Garden Preview</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,500..700&family=Manrope:wght@400;500;700;800&display=swap">
+<style>
+/* Layout: brand header → three phone screens → full species × stage catalogue with pot switcher */
+:root{
+  --paper:#F3F0E8; --card:#FBFAF6; --raised:#E9E4D8; --ink:#0F1A14; --muted:#6B7368; --line:#E0DBCF;
+  --moss:#1F5135; --lime:#C6F36B; --hero:#0F1A14; --onhero:#EEF2EA;
+  --display:"Fraunces", Georgia, serif; --ui:"Manrope", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#0B110D; --card:#151E18; --raised:#1C2820; --ink:#EEF2EA; --muted:#94A096; --line:#26332A; --moss:#8FD39A; --hero:#1C2820; color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#0B110D; --card:#151E18; --raised:#1C2820; --ink:#EEF2EA; --muted:#94A096; --line:#26332A; --moss:#8FD39A; --hero:#1C2820; color-scheme:dark}
+body{background:var(--paper);color:var(--ink);font-family:var(--ui);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 64px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:56px}
+h1,h2{font-family:var(--display);font-weight:500;letter-spacing:-.03em;text-wrap:balance;margin:0}
+h1{font-size:clamp(40px,7vw,76px);line-height:.98}
+h2{font-size:clamp(28px,4vw,40px)}
+.eyebrow{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.word{font-family:var(--display);font-style:italic;font-weight:600;font-size:26px;display:flex;align-items:flex-end;gap:4px}
+.word i{width:7px;height:7px;border-radius:50%;background:var(--lime);display:inline-block;margin-bottom:5px}
+header{display:grid;gap:18px}
+header p{max-width:60ch;color:var(--muted);font-size:17px;line-height:1.5;margin:0}
+.plant{position:relative;aspect-ratio:240/300;max-width:100%}
+.plant img{position:absolute;inset:0;width:100%;height:100%}
+/* phones */
+.phones{display:flex;gap:28px;justify-content:center;flex-wrap:wrap}
+.phone{width:300px;max-width:100%;height:620px;border-radius:44px;background:#0F1A14;padding:10px;box-shadow:0 30px 60px -30px rgba(0,0,0,.45)}
+.screen{height:100%;border-radius:36px;overflow:hidden;background:#F3F0E8;color:#0F1A14;position:relative;display:flex;flex-direction:column}
+.screen .pad{padding:22px 18px 0;display:grid;gap:12px}
+.s-eb{font-size:9px;font-weight:800;letter-spacing:.14em;color:#6B7368;text-transform:uppercase}
+.s-h{font-family:var(--display);font-size:28px;line-height:1;letter-spacing:-.03em}
+.herocard{background:#0F1A14;color:#EEF2EA;border-radius:20px;height:170px;position:relative;overflow:hidden;padding:14px}
+.herocard .plant{position:absolute;right:0;top:4px;height:166px}
+.ring{width:56px;height:56px;border-radius:50%;background:conic-gradient(#C6F36B 0 60%, rgba(238,242,234,.14) 0);display:grid;place-items:center}
+.ring span{width:44px;height:44px;border-radius:50%;background:#0F1A14;display:grid;place-items:center;font-weight:800;font-size:14px}
+.herocard p{position:absolute;left:14px;bottom:12px;margin:0;font-family:var(--display);font-size:17px;width:130px;line-height:1.1}
+.tile{background:#FBFAF6;border:1px solid #E0DBCF;border-radius:16px;padding:7px 10px 7px 7px;display:flex;align-items:center;gap:10px}
+.tile .mini{width:46px;height:54px;border-radius:11px;padding:3px}
+.tile b{font-size:13px;display:block}.tile small{font-size:10.5px;color:#6B7368}
+.chk{margin-left:auto;width:34px;height:34px;border-radius:11px;border:1.5px solid #E0DBCF;flex:none;display:grid;place-items:center;font-weight:800}
+.chk.on{background:#C6F36B;border-color:#C6F36B}
+.nav{margin:auto 12px 12px;background:#0F1A14;border-radius:22px;height:54px;display:flex;align-items:center;justify-content:space-around}
+.nav span{width:28px;height:6px;border-radius:9px;background:rgba(238,242,234,.3)}
+.nav .on{background:#C6F36B;width:40px;height:26px}
+.nav .add{background:#C6F36B;width:38px;height:38px;border-radius:13px}
+.detail-hero{height:330px;position:relative}
+.detail-hero .plant{position:absolute;left:50%;transform:translateX(-50%);bottom:8px;height:270px}
+.bubble{position:absolute;top:44px;left:24px;right:24px;background:#0F1A14;color:#EEF2EA;border-radius:14px;padding:9px 12px;font-size:12px;text-align:center}
+.stages{display:flex;gap:6px;overflow:hidden}
+.stages div{flex:none;width:44px;border:1px solid #E0DBCF;border-radius:10px;padding:4px;background:#FBFAF6;text-align:center;font-size:9px;font-weight:700}
+.stages div.cur{background:#0F1A14;color:#EEF2EA}
+.stages .locked img{filter:brightness(0) opacity(.12)}
+.ggrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gcard{background:#FBFAF6;border:1px solid #E0DBCF;border-radius:16px;padding:4px}
+.gcard .bd{border-radius:12px;padding:8px 6px 2px}
+.gcard b{display:block;font-size:12px;padding:6px 6px 0}.gcard small{display:block;font-size:10px;color:#6B7368;padding:0 6px 6px}
+/* catalogue */
+.controls{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{font:700 13px var(--ui);padding:9px 14px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.seg button:focus-visible{outline:2px solid var(--moss);outline-offset:2px}
+.catalog{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.sp{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:6px;display:grid;gap:4px}
+.sp .bd{border-radius:17px;padding:14px 10px 2px}
+.sp .meta{padding:6px 8px 8px;display:grid;gap:2px}
+.sp b{font-size:15px}.sp em{font-size:12px;color:var(--muted)}
+.strip{display:flex;gap:2px;padding:0 6px 6px}
+.strip span{flex:1;height:4px;border-radius:4px;background:var(--line)}
+.strip span.on{background:var(--moss)}
+.matrix{overflow-x:auto;border:1px solid var(--line);border-radius:22px;background:var(--card)}
+.matrix table{border-collapse:collapse;min-width:820px;width:100%}
+.matrix td,.matrix th{padding:6px;border-bottom:1px solid var(--line);text-align:center}
+.matrix th{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:800;padding-block:12px}
+.matrix td:first-child{text-align:left;font-weight:700;font-size:13px;padding-left:16px;white-space:nowrap}
+.matrix .plant{width:96px;margin:0 auto}
+@media (prefers-reduced-motion:no-preference){.sway .stem{transform-origin:50% 80%;animation:sway 4.2s ease-in-out infinite}}
+@keyframes sway{0%,100%{transform:rotate(-.7deg)}50%{transform:rotate(.7deg)}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="word">verdant<i></i></div>
+    <div class="eyebrow">Flutter template · design preview</div>
+    <h1>Grow a garden,<br>one habit at a time.</h1>
+    <p>This is a preview of the Flutter starter. The screens and plant art below use the same SVG assets and design tokens as the Dart code: 19 species, 6 growth stages each, and 6 pot styles.</p>
+  </header>
+
+  <section class="phones" id="phones"></section>
+
+  <section style="display:grid;gap:18px">
+    <div class="controls">
+      <div style="display:grid;gap:6px"><div class="eyebrow">Plant catalogue</div><h2>19 species to collect</h2></div>
+      <div class="seg" id="stageSeg" aria-label="Growth stage"></div>
+    </div>
+    <div class="seg" id="potSeg" aria-label="Pot style"></div>
+    <div class="catalog" id="catalog"></div>
+  </section>
+
+  <section style="display:grid;gap:18px">
+    <div style="display:grid;gap:6px"><div class="eyebrow">Growth stages · valid completions needed</div><h2>Every plant, every stage</h2></div>
+    <div class="matrix"><table id="matrix"></table></div>
+  </section>
+</div>
+
+<script>
+const SPECIES=[["monstera","Monstera","Monstera deliciosa","Thriving"],["snake_plant","Snake Plant","Dracaena trifasciata","Flowering"],["fiddle_leaf","Fiddle Leaf Fig","Ficus lyrata","Thriving"],["echeveria","Echeveria","Echeveria elegans","Flowering"],["cactus","Saguaro Cactus","Carnegiea gigantea","Flowering"],["fern","Boston Fern","Nephrolepis exaltata","Lush"],["bonsai","Juniper Bonsai","Juniperus procumbens","Thriving"],["sunflower","Sunflower","Helianthus annuus","Blooming"],["tulip","Tulip","Tulipa gesneriana","Blooming"],["lavender","Lavender","Lavandula angustifolia","Blooming"],["cherry_blossom","Cherry Blossom","Prunus serrulata","Blooming"],["peace_lily","Peace Lily","Spathiphyllum wallisii","Blooming"],["aloe","Aloe Vera","Aloe barbadensis","Flowering"],["rose","Garden Rose","Rosa × hybrida","Blooming"],["bird_of_paradise","Bird of Paradise","Strelitzia reginae","Blooming"],["calathea","Calathea","Goeppertia roseopicta","Thriving"],["pothos","Golden Pothos","Epipremnum aureum","Cascading"],["lucky_bamboo","Lucky Bamboo","Dracaena sanderiana","Flourishing"],["olive","Olive Tree","Olea europaea","Fruiting"]];
+const STAGES=[["Seed",0],["Sprout",1],["Seedling",3],["Growing",7],["Mature",14],["Final",24]];
+const POTS=[["terracotta","Terracotta",["#F7E3D6","#F1D2BF"]],["ivory","Ivory",["#EDEBE3","#E2DED2"]],["stone","Concrete",["#E6E7E2","#D6D8D1"]],["sage","Sage",["#E2EDDD","#CFE0C8"]],["midnight","Midnight",["#DCE1EC","#C7CEDF"]],["blush","Blush",["#F8E4E0","#F0D0C9"]]];
+const bd=p=>{const c=POTS.find(x=>x[0]===p)[2];return `background:linear-gradient(${c[0]},${c[1]})`};
+function plant(sp,st,pot,{sway=false,locked=false}={}){
+  const front=sp==="pothos"&&st>=3?`<img src="assets/plants/pothos/stage_${st}_front.svg" alt="">`:"";
+  return `<div class="plant${sway?" sway":""}${locked?" locked":""}"><img src="assets/pots/${pot}_back.svg" alt=""><img class="stem" src="assets/plants/${sp}/stage_${st}.svg" alt="${sp} stage ${st}"><img src="assets/pots/${pot}_front.svg" alt="">${front}</div>`;
+}
+const nav=(i)=>`<div class="nav">${[0,1,"+",2,3].map(k=>k==="+"?'<span class="add"></span>':`<span class="${k===i?"on":""}"></span>`).join("")}</div>`;
+const tile=(sp,st,pot,name,sub,on)=>`<div class="tile"><div class="mini" style="${bd(pot)}">${plant(sp,st,pot)}</div><div><b style="${on?"text-decoration:line-through;color:#6B7368":""}">${name}</b><small>${sub}</small></div><div class="chk ${on?"on":""}">${on?"✓":""}</div></div>`;
+document.getElementById("phones").innerHTML=`
+<div class="phone"><div class="screen"><div class="pad">
+  <div class="s-eb">Wednesday · Oct 28</div><div class="s-h">Good evening,<br>Aley.</div>
+  <div class="herocard"><div class="ring"><span>3/5</span></div>${plant("bonsai",5,"sage",{sway:true})}<p>Kenji is thriving.</p></div>
+  <div class="s-eb" style="margin-top:4px">Today’s care · 3 of 5 done</div>
+  ${tile("sunflower",5,"blush","Morning sunlight","Done today",true)}
+  ${tile("peace_lily",4,"ivory","Drink 8 glasses","Every day",true)}
+  ${tile("monstera",3,"terracotta","Read 20 pages","Every day",false)}
+</div>${nav(0)}</div></div>
+<div class="phone"><div class="screen">
+  <div class="detail-hero" style="${bd("terracotta")}"><div class="bubble">2 more and I’ll be growing.</div>${plant("monstera",3,"terracotta",{sway:true})}</div>
+  <div class="pad"><div class="s-eb">Monstera deliciosa · Common</div><div class="s-h">Monty</div>
+  <div class="stages">${STAGES.map((s,i)=>`<div class="${i===3?"cur":""}${i>3?" locked":""}">${plant("monstera",i,"terracotta",{locked:i>3})}${i===5?"Thriving":s[0]}</div>`).join("")}</div></div>
+  ${nav(1)}</div></div>
+<div class="phone"><div class="screen"><div class="pad">
+  <div class="s-eb">6 plants · 2 fully grown</div><div class="s-h">Your garden</div>
+  <div class="ggrid">${[["cherry_blossom","midnight","Cherry",1],["cactus","stone","Saguaro",2],["rose","blush","Rose",5],["pothos","sage","Pothos",4]].map(([s,p,n,st])=>`<div class="gcard"><div class="bd" style="${bd(p)}">${plant(s,st,p)}</div><b>${n}</b><small>${STAGES[st][0]}</small></div>`).join("")}</div>
+</div>${nav(1)}</div></div>`;
+
+let stage=5,pot="ivory";
+function seg(id,items,cur,set){const el=document.getElementById(id);el.innerHTML=items.map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="${String(v)===String(cur)}">${l}</button>`).join("");el.onclick=e=>{const b=e.target.closest("button");if(!b)return;set(b.dataset.v);render()}}
+function render(){
+  seg("stageSeg",STAGES.map((s,i)=>[i,s[0]]),stage,v=>stage=+v);
+  seg("potSeg",POTS.map(p=>[p[0],p[1]]),pot,v=>pot=v);
+  document.getElementById("catalog").innerHTML=SPECIES.map(([id,n,l,f])=>`<div class="sp"><div class="bd" style="${bd(pot)}">${plant(id,stage,pot,{sway:true})}</div><div class="meta"><b>${n}</b><em>${l}</em><span class="eyebrow" style="margin-top:4px">${stage===5?f:STAGES[stage][0]}</span></div><div class="strip">${STAGES.map((_,i)=>`<span class="${i<=stage?"on":""}"></span>`).join("")}</div></div>`).join("");
+}
+render();
+document.getElementById("matrix").innerHTML=`<tr><th></th>${STAGES.map(s=>`<th>${s[0]}<br><span style="letter-spacing:0;font-weight:500">${s[1]}</span></th>`).join("")}</tr>`+SPECIES.map(([id,n],k)=>`<tr><td>${n}</td>${STAGES.map((_,i)=>`<td>${plant(id,i,POTS[k%6][0])}</td>`).join("")}</tr>`).join("");
+</script>
