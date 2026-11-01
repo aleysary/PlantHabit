@@ -1,0 +1,13 @@
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    prefer_const_constructors: true
+    prefer_final_locals: true
+    avoid_print: true
+
+analyzer:
+  exclude:
+    # Copy these into lib/ after adding the Firebase packages (docs/FIREBASE.md).
+    - firebase_templates/**
+    - tool/**

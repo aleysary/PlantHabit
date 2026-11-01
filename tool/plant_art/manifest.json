@@ -1,0 +1,201 @@
+{
+  "species": [
+    {
+      "id": "monstera",
+      "name": "Monstera",
+      "latin": "Monstera deliciosa",
+      "final": "Thriving",
+      "care": "Bright, indirect light",
+      "vibe": "Bold & tropical",
+      "hasFront": false
+    },
+    {
+      "id": "snake_plant",
+      "name": "Snake Plant",
+      "latin": "Dracaena trifasciata",
+      "final": "Flowering",
+      "care": "Thrives on neglect",
+      "vibe": "Sharp & architectural",
+      "hasFront": false
+    },
+    {
+      "id": "fiddle_leaf",
+      "name": "Fiddle Leaf Fig",
+      "latin": "Ficus lyrata",
+      "final": "Thriving",
+      "care": "Steady light, no drafts",
+      "vibe": "Statement tree",
+      "hasFront": false
+    },
+    {
+      "id": "echeveria",
+      "name": "Echeveria",
+      "latin": "Echeveria elegans",
+      "final": "Flowering",
+      "care": "Sun & sparse water",
+      "vibe": "Soft geometry",
+      "hasFront": false
+    },
+    {
+      "id": "cactus",
+      "name": "Saguaro Cactus",
+      "latin": "Carnegiea gigantea",
+      "final": "Flowering",
+      "care": "Full sun, very dry",
+      "vibe": "Desert icon",
+      "hasFront": false
+    },
+    {
+      "id": "fern",
+      "name": "Boston Fern",
+      "latin": "Nephrolepis exaltata",
+      "final": "Lush",
+      "care": "Humid & shaded",
+      "vibe": "Feathery & lush",
+      "hasFront": false
+    },
+    {
+      "id": "bonsai",
+      "name": "Juniper Bonsai",
+      "latin": "Juniperus procumbens",
+      "final": "Thriving",
+      "care": "Patience, daily care",
+      "vibe": "Calm & ancient",
+      "hasFront": false
+    },
+    {
+      "id": "sunflower",
+      "name": "Sunflower",
+      "latin": "Helianthus annuus",
+      "final": "Blooming",
+      "care": "All the sun",
+      "vibe": "Pure optimism",
+      "hasFront": false
+    },
+    {
+      "id": "tulip",
+      "name": "Tulip",
+      "latin": "Tulipa gesneriana",
+      "final": "Blooming",
+      "care": "Cool spring light",
+      "vibe": "Bright & cheerful",
+      "hasFront": false
+    },
+    {
+      "id": "lavender",
+      "name": "Lavender",
+      "latin": "Lavandula angustifolia",
+      "final": "Blooming",
+      "care": "Sun & good drainage",
+      "vibe": "Calm & fragrant",
+      "hasFront": false
+    },
+    {
+      "id": "cherry_blossom",
+      "name": "Cherry Blossom",
+      "latin": "Prunus serrulata",
+      "final": "Blooming",
+      "care": "Seasonal rhythm",
+      "vibe": "Fleeting beauty",
+      "hasFront": false
+    },
+    {
+      "id": "peace_lily",
+      "name": "Peace Lily",
+      "latin": "Spathiphyllum wallisii",
+      "final": "Blooming",
+      "care": "Low light friendly",
+      "vibe": "Serene & glossy",
+      "hasFront": false
+    },
+    {
+      "id": "aloe",
+      "name": "Aloe Vera",
+      "latin": "Aloe barbadensis",
+      "final": "Flowering",
+      "care": "Bright & dry",
+      "vibe": "Healing spikes",
+      "hasFront": false
+    },
+    {
+      "id": "rose",
+      "name": "Garden Rose",
+      "latin": "Rosa × hybrida",
+      "final": "Blooming",
+      "care": "Sun & attention",
+      "vibe": "Romantic classic",
+      "hasFront": false
+    },
+    {
+      "id": "bird_of_paradise",
+      "name": "Bird of Paradise",
+      "latin": "Strelitzia reginae",
+      "final": "Blooming",
+      "care": "Bright light, warmth",
+      "vibe": "Exotic flair",
+      "hasFront": false
+    },
+    {
+      "id": "calathea",
+      "name": "Calathea",
+      "latin": "Goeppertia roseopicta",
+      "final": "Thriving",
+      "care": "Humidity & shade",
+      "vibe": "Painted leaves",
+      "hasFront": false
+    },
+    {
+      "id": "pothos",
+      "name": "Golden Pothos",
+      "latin": "Epipremnum aureum",
+      "final": "Cascading",
+      "care": "Any light, easy",
+      "vibe": "Easygoing trailer",
+      "hasFront": true
+    },
+    {
+      "id": "lucky_bamboo",
+      "name": "Lucky Bamboo",
+      "latin": "Dracaena sanderiana",
+      "final": "Flourishing",
+      "care": "Indirect light",
+      "vibe": "Good fortune",
+      "hasFront": false
+    },
+    {
+      "id": "olive",
+      "name": "Olive Tree",
+      "latin": "Olea europaea",
+      "final": "Fruiting",
+      "care": "Sun & warmth",
+      "vibe": "Mediterranean calm",
+      "hasFront": false
+    }
+  ],
+  "pots": [
+    {
+      "id": "terracotta",
+      "name": "Terracotta"
+    },
+    {
+      "id": "ivory",
+      "name": "Ivory Ceramic"
+    },
+    {
+      "id": "stone",
+      "name": "Concrete"
+    },
+    {
+      "id": "sage",
+      "name": "Sage Glaze"
+    },
+    {
+      "id": "midnight",
+      "name": "Midnight"
+    },
+    {
+      "id": "blush",
+      "name": "Blush"
+    }
+  ]
+}
