@@ -2,6 +2,12 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Garden only (no login)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main_garden.dart"
+    },
+    {
       "name": "PlantHabit (debug)",
       "request": "launch",
       "type": "dart",

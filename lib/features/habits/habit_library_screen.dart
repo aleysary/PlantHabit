@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/theme/verdant_colors.dart';
 import '../../core/theme/verdant_theme.dart';
 import '../../core/widgets/plant_view.dart';
 import '../../core/widgets/ui.dart';
