@@ -109,11 +109,13 @@ class _NavBar extends StatelessWidget {
             Pressable(
               onTap: onAdd,
               child: Container(
-                width: 52,
+                width: 64,
                 height: 52,
                 margin: const EdgeInsets.symmetric(horizontal: 4),
                 decoration: BoxDecoration(color: v.highlight, borderRadius: BorderRadius.circular(18)),
-                child: const Icon(Icons.add_rounded, color: VerdantColors.ink, size: 28),
+                alignment: Alignment.center,
+                child: Text('Habits',
+                    style: context.text.labelMedium?.copyWith(color: VerdantColors.ink, fontWeight: FontWeight.w700)),
               ),
             ),
             item(2),
