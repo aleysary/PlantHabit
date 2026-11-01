@@ -10,6 +10,7 @@ import '../../data/catalog/badge_catalog.dart';
 import '../../data/catalog/plant_catalog.dart';
 import '../../data/models/models.dart';
 import '../../domain/rules.dart';
+import '../../domain/group_plants.dart';
 import '../../state/app_state.dart';
 
 /// Records a completion and plays the right feedback: toast, growth
@@ -21,19 +22,23 @@ Future<void> completeWithFeedback(BuildContext context, Habit habit) async {
     if (!context.mounted) return;
     if (!outcome.accepted) {
       HapticFeedback.heavyImpact();
-      showToast(context, outcome.status.message, icon: Icons.info_outline_rounded);
+      showToast(context, outcome.status.message,
+          icon: Icons.info_outline_rounded);
       return;
     }
     HapticFeedback.mediumImpact();
     if (outcome.grewStage) {
       await showGrowthCelebration(context, habit, outcome.stageAfter);
     } else {
-      final n = state.validCount(habit.id);
-      final next = AppState.growth.nextThreshold(n);
       final label = state.plantLabel(habit);
+      final checklist = state
+          .cycleOf(habit)
+          ?.dailyChecklist(state.completions, state.plantToday);
       showToast(
         context,
-        next == null ? '$label is fully grown. Keep it thriving.' : '+1 for $label · ${next - n} more to the next stage',
+        HabitGroup.of(habit.frequency) == HabitGroup.daily
+            ? 'Today: ${checklist?.completed ?? 0}/${checklist?.required ?? 0} habits complete · ${state.cycleOf(habit)?.dailyCompletedDays ?? 0} of 7 completed days.'
+            : 'Care recorded for $label · ${state.cycleOf(habit)?.growthLabelAt(state.plantToday) ?? 'Your journey has started'}.',
         icon: Icons.water_drop_rounded,
       );
     }
@@ -42,13 +47,17 @@ Future<void> completeWithFeedback(BuildContext context, Habit habit) async {
       await showBadgeEarned(context, b);
     }
   } catch (_) {
-    if (context.mounted) showToast(context, 'Couldn’t save that. Check your connection and try again.', icon: Icons.cloud_off_rounded);
+    if (context.mounted)
+      showToast(
+          context, 'Couldn’t save that. Check your connection and try again.',
+          icon: Icons.cloud_off_rounded);
   }
 }
 
-Future<void> showGrowthCelebration(BuildContext context, Habit habit, int stage) {
-  final species = PlantCatalog.byId(habit.speciesId);
+Future<void> showGrowthCelebration(
+    BuildContext context, Habit habit, int stage) {
   final state = context.read<AppState>();
+  final species = PlantCatalog.byId(state.speciesOf(habit));
   return showGeneralDialog<void>(
     context: context,
     barrierDismissible: true,
@@ -57,7 +66,10 @@ Future<void> showGrowthCelebration(BuildContext context, Habit habit, int stage)
     transitionDuration: const Duration(milliseconds: 380),
     transitionBuilder: (context, a, _, child) => FadeTransition(
       opacity: a,
-      child: ScaleTransition(scale: Tween(begin: 0.92, end: 1.0).animate(CurvedAnimation(parent: a, curve: Curves.easeOutBack)), child: child),
+      child: ScaleTransition(
+          scale: Tween(begin: 0.92, end: 1.0)
+              .animate(CurvedAnimation(parent: a, curve: Curves.easeOutBack)),
+          child: child),
     ),
     pageBuilder: (context, _, __) => SafeArea(
       child: Material(
@@ -67,23 +79,33 @@ Future<void> showGrowthCelebration(BuildContext context, Habit habit, int stage)
           child: Column(
             children: [
               const Spacer(),
-              Pill('NEW STAGE', color: VerdantColors.lime, textColor: VerdantColors.ink),
+              Pill('NEW STAGE',
+                  color: VerdantColors.lime, textColor: VerdantColors.ink),
               const SizedBox(height: 16),
               Text(
                 '${state.plantLabel(habit)} is now\n${PlantCatalog.stageName(species, stage).toLowerCase()}.',
                 textAlign: TextAlign.center,
-                style: context.text.displaySmall?.copyWith(color: VerdantColors.mist),
+                style: context.text.displaySmall
+                    ?.copyWith(color: VerdantColors.mist),
               ),
               const SizedBox(height: 8),
-              Text(PlantCatalog.stages[stage].blurb, textAlign: TextAlign.center, style: context.text.bodyLarge?.copyWith(color: VerdantColors.mistMuted)),
+              Text(PlantCatalog.stages[stage].blurb,
+                  textAlign: TextAlign.center,
+                  style: context.text.bodyLarge
+                      ?.copyWith(color: VerdantColors.mistMuted)),
               const SizedBox(height: 12),
               Expanded(
                 flex: 6,
-                child: _GrowReveal(speciesId: habit.speciesId, potId: habit.potId, stage: stage),
+                child: _GrowReveal(
+                    speciesId: state.speciesOf(habit),
+                    potId: state.potOf(habit),
+                    stage: stage),
               ),
               const SizedBox(height: 20),
               FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: VerdantColors.lime, foregroundColor: VerdantColors.ink),
+                style: FilledButton.styleFrom(
+                    backgroundColor: VerdantColors.lime,
+                    foregroundColor: VerdantColors.ink),
                 onPressed: () => Navigator.of(context).pop(),
                 child: const Text('Beautiful'),
               ),
@@ -97,7 +119,8 @@ Future<void> showGrowthCelebration(BuildContext context, Habit habit, int stage)
 
 /// Shows the previous stage, then swaps to the new one with a rustle.
 class _GrowReveal extends StatefulWidget {
-  const _GrowReveal({required this.speciesId, required this.potId, required this.stage});
+  const _GrowReveal(
+      {required this.speciesId, required this.potId, required this.stage});
   final String speciesId;
   final String potId;
   final int stage;
@@ -124,10 +147,15 @@ class _GrowRevealState extends State<_GrowReveal> {
         Container(
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: RadialGradient(colors: [VerdantColors.lime.o(0.28), VerdantColors.lime.o(0)]),
+            gradient: RadialGradient(
+                colors: [VerdantColors.lime.o(0.28), VerdantColors.lime.o(0)]),
           ),
         ),
-        PlantView(speciesId: widget.speciesId, stage: _shown, potId: widget.potId, ambient: true),
+        PlantView(
+            speciesId: widget.speciesId,
+            stage: _shown,
+            potId: widget.potId,
+            ambient: true),
       ],
     );
   }
@@ -153,9 +181,13 @@ Future<void> showBadgeEarned(BuildContext context, BadgeDef badge) {
           const SizedBox(height: 6),
           Text(badge.name, style: context.text.headlineMedium),
           const SizedBox(height: 6),
-          Text(badge.description, textAlign: TextAlign.center, style: context.text.bodyLarge?.copyWith(color: context.v.muted)),
+          Text(badge.description,
+              textAlign: TextAlign.center,
+              style: context.text.bodyLarge?.copyWith(color: context.v.muted)),
           const SizedBox(height: 22),
-          FilledButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Keep growing')),
+          FilledButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Keep growing')),
         ],
       ),
     ),
@@ -164,14 +196,15 @@ Future<void> showBadgeEarned(BuildContext context, BadgeDef badge) {
 
 /// Friendly lines for tapping a plant (story 14).
 String plantChatter(AppState state, Habit h) {
-  final n = state.validCount(h.id);
-  final stage = AppState.growth.stageFor(n);
-  final species = PlantCatalog.byId(h.speciesId);
-  final next = AppState.growth.nextThreshold(n);
+  final stage = state.stageOf(h);
+  final species = PlantCatalog.byId(state.speciesOf(h));
   final done = state.isDoneToday(h);
   final lines = <String>[
-    if (done) 'Thanks for today’s care. I can feel it in my roots.' else 'Psst — I’m a little thirsty today.',
-    if (next != null) '${next - n} more and I’ll be ${PlantCatalog.stageName(species, stage + 1).toLowerCase()}.' else 'Fully grown. Look at us.',
+    if (done)
+      'Thanks for today’s care. I can feel it in my roots.'
+    else
+      'Psst — I’m a little thirsty today.',
+    state.cycleOf(h)?.growthLabelAt(state.plantToday) ?? 'Ready to grow.',
     'I’m a ${species.name.toLowerCase()}. ${species.care}.',
     'Stage ${stage + 1} of ${PlantCatalog.stages.length}: ${PlantCatalog.stageName(species, stage)}.',
   ];
@@ -180,8 +213,14 @@ String plantChatter(AppState state, Habit h) {
 
 /// Small helper reused by tiles: "2/3 this week" or "Done today".
 String cadenceLabel(AppState s, Habit h) {
-  if (h.frequency.type == FrequencyType.daily) return s.isDoneToday(h) ? 'Done today' : 'Every day';
-  return '${s.weekCount(h)}/${h.frequency.timesPerWeek} this week';
+  if (h.frequency.type == FrequencyType.daily)
+    return s.isDoneToday(h) ? 'Done today' : 'Every day';
+  final period = h.frequency.type == FrequencyType.biweekly
+      ? 'this fortnight'
+      : h.frequency.type == FrequencyType.monthly
+          ? 'this month'
+          : 'this week';
+  return '${s.periodCount(h)}/${h.frequency.timesPerWeek} $period';
 }
 
 /// Used for history text.

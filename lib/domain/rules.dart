@@ -6,11 +6,14 @@ class Days {
   Days._();
   static DateTime of(DateTime d) => DateTime(d.year, d.month, d.day);
   static DateTime today() => of(DateTime.now());
-  static bool same(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
+  static bool same(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
 
   /// Monday of the week containing [d].
-  static DateTime weekStart(DateTime d) => of(d).subtract(Duration(days: d.weekday - 1));
-  static DateTime add(DateTime d, int days) => DateTime(d.year, d.month, d.day + days);
+  static DateTime weekStart(DateTime d) =>
+      of(d).subtract(Duration(days: d.weekday - 1));
+  static DateTime add(DateTime d, int days) =>
+      DateTime(d.year, d.month, d.day + days);
   static int key(DateTime d) => d.year * 10000 + d.month * 100 + d.day;
 }
 
@@ -19,6 +22,7 @@ enum CompletionStatus {
   accepted,
   duplicateToday,
   weeklyTargetReached,
+  periodTargetReached,
   habitInactive,
   futureDate,
 }
@@ -26,10 +30,16 @@ enum CompletionStatus {
 extension CompletionStatusMessage on CompletionStatus {
   String get message => switch (this) {
         CompletionStatus.accepted => 'Nice — logged.',
-        CompletionStatus.duplicateToday => 'Already logged today. Your plant only grows once a day per habit.',
-        CompletionStatus.weeklyTargetReached => 'You’ve hit this week’s target. Rest up — it resets Monday.',
-        CompletionStatus.habitInactive => 'This habit is no longer being tracked.',
-        CompletionStatus.futureDate => 'You can’t log a day that hasn’t happened yet.',
+        CompletionStatus.periodTargetReached =>
+          'You have completed this period’s habit. It will return next period.',
+        CompletionStatus.duplicateToday =>
+          'Already logged today. Your plant only grows once a day per habit.',
+        CompletionStatus.weeklyTargetReached =>
+          'You’ve hit this week’s target. Rest up — it resets Monday.',
+        CompletionStatus.habitInactive =>
+          'This habit is no longer being tracked.',
+        CompletionStatus.futureDate =>
+          'You can’t log a day that hasn’t happened yet.',
       };
 }
 
@@ -43,17 +53,29 @@ class CompletionRules {
     required DateTime day,
     required Iterable<Completion> existing,
     DateTime? now,
+    DateTime? periodAnchor,
   }) {
     final d = Days.of(day);
     if (!habit.isActive) return CompletionStatus.habitInactive;
-    if (d.isAfter(Days.of(now ?? DateTime.now()))) return CompletionStatus.futureDate;
+    if (d.isAfter(Days.of(now ?? DateTime.now())))
+      return CompletionStatus.futureDate;
     final mine = existing.where((c) => c.habitId == habit.id);
-    if (mine.any((c) => Days.same(c.day, d))) return CompletionStatus.duplicateToday;
+    if (mine.any((c) => Days.same(c.day, d)))
+      return CompletionStatus.duplicateToday;
+    if (habit.frequency.type == FrequencyType.biweekly ||
+        habit.frequency.type == FrequencyType.monthly) {
+      final (start, end) = HabitPeriods.bounds(habit, d, anchor: periodAnchor);
+      if (mine.any((c) => !c.day.isBefore(start) && c.day.isBefore(end))) {
+        return CompletionStatus.periodTargetReached;
+      }
+    }
     if (habit.frequency.type == FrequencyType.weekly) {
       final ws = Days.weekStart(d);
       final we = Days.add(ws, 7);
-      final inWeek = mine.where((c) => !c.day.isBefore(ws) && c.day.isBefore(we)).length;
-      if (inWeek >= habit.frequency.timesPerWeek) return CompletionStatus.weeklyTargetReached;
+      final inWeek =
+          mine.where((c) => !c.day.isBefore(ws) && c.day.isBefore(we)).length;
+      if (inWeek >= habit.frequency.timesPerWeek)
+        return CompletionStatus.weeklyTargetReached;
     }
     return CompletionStatus.accepted;
   }
@@ -61,6 +83,22 @@ class CompletionRules {
 
 /// Plant growth (stories 11 & 15). Growth is driven only by accepted
 /// completions, so invalid/duplicate entries can never inflate a plant.
+class HabitPeriods {
+  /// Two-week periods start on the habit's creation day; monthly periods use calendar months.
+  static (DateTime, DateTime) bounds(Habit habit, DateTime day,
+      {DateTime? anchor}) {
+    if (habit.frequency.type == FrequencyType.monthly) {
+      return (DateTime(day.year, day.month), DateTime(day.year, day.month + 1));
+    }
+    final base = Days.of(anchor ?? habit.createdAt);
+    final elapsed = DateTime.utc(day.year, day.month, day.day)
+        .difference(DateTime.utc(base.year, base.month, base.day))
+        .inDays;
+    final start = Days.add(base, (elapsed / 14).floor() * 14);
+    return (start, Days.add(start, 14));
+  }
+}
+
 class GrowthRules {
   const GrowthRules();
 
@@ -109,7 +147,8 @@ class GardenStats {
   final int distinctSpecies;
   final int perfectWeeks;
 
-  static GardenStats compute(List<Habit> habits, List<Completion> completions, {DateTime? now}) {
+  static GardenStats compute(List<Habit> habits, List<Completion> completions,
+      {DateTime? now}) {
     const growth = GrowthRules();
     final today = Days.of(now ?? DateTime.now());
     final days = completions.map((c) => Days.key(c.day)).toSet();
@@ -122,7 +161,8 @@ class GardenStats {
       cursor = Days.add(cursor, -1);
     }
 
-    final sorted = completions.map((c) => Days.of(c.day)).toSet().toList()..sort();
+    final sorted = completions.map((c) => Days.of(c.day)).toSet().toList()
+      ..sort();
     var longest = 0;
     var run = 0;
     DateTime? prev;
@@ -136,7 +176,11 @@ class GardenStats {
     for (final c in completions) {
       perHabit[c.habitId] = (perHabit[c.habitId] ?? 0) + 1;
     }
-    final finals = habits.where((h) => growth.stageFor(perHabit[h.id] ?? 0) == PlantCatalog.stages.length - 1).length;
+    final finals = habits
+        .where((h) =>
+            growth.stageFor(perHabit[h.id] ?? 0) ==
+            PlantCatalog.stages.length - 1)
+        .length;
 
     // perfect weeks: weeks where every active daily habit hit 7 and weekly hit target
     var perfect = 0;
@@ -147,7 +191,22 @@ class GardenStats {
         final we = Days.add(ws, 7);
         final ok = active.every((h) {
           if (h.createdAt.isAfter(ws)) return false;
-          final n = completions.where((c) => c.habitId == h.id && !c.day.isBefore(ws) && c.day.isBefore(we)).length;
+          if (h.frequency.type == FrequencyType.biweekly ||
+              h.frequency.type == FrequencyType.monthly) {
+            final (start, end) = HabitPeriods.bounds(h, Days.add(we, -1));
+            // Longer goals count only in the week their period ends.
+            if (end.isAfter(we)) return true;
+            return completions.any((c) =>
+                c.habitId == h.id &&
+                !c.day.isBefore(start) &&
+                c.day.isBefore(end));
+          }
+          final n = completions
+              .where((c) =>
+                  c.habitId == h.id &&
+                  !c.day.isBefore(ws) &&
+                  c.day.isBefore(we))
+              .length;
           return n >= h.frequency.timesPerWeek;
         });
         if (ok) perfect++;
