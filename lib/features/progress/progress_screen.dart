@@ -104,7 +104,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
             padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                Expanded(child: Text(_period == Period.quarter ? 'Weekly completions' : 'Daily completions', style: context.text.titleMedium)),
+                Expanded(child: Text(_period == Period.quarter ? 'Weekly Habit Completions' : 'Daily Habit Completions', style: context.text.titleMedium)),
                 Text('${DateFormat('MMM d').format(start)} – ${DateFormat('MMM d').format(today)}', style: context.text.bodySmall),
               ]),
               const SizedBox(height: 18),
@@ -128,7 +128,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
           if (history.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Text('Your completion history will appear here.', style: context.text.bodyMedium?.copyWith(color: context.v.muted)),
+              child: Text('Your habit completion history will appear here.', style: context.text.bodyMedium?.copyWith(color: context.v.muted)),
             ),
         ],
       ),
@@ -284,7 +284,7 @@ class _BadgesTeaser extends StatelessWidget {
             const SizedBox(height: 4),
             Text('$earned of ${BadgeCatalog.badges.length} earned', style: context.text.headlineSmall?.copyWith(color: v.onHero)),
             const SizedBox(height: 4),
-            Text('See milestones and what’s next', style: context.text.bodySmall?.copyWith(color: v.onHero.o(0.6))),
+            Text('See your milestones and see what’s next', style: context.text.bodySmall?.copyWith(color: v.onHero.o(0.6))),
           ]),
         ),
         SizedBox(
