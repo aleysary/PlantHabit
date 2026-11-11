@@ -3,6 +3,7 @@ import 'package:verdant/data/catalog/habit_catalog.dart';
 import 'package:verdant/data/models/models.dart';
 import 'package:verdant/data/repositories/in_memory.dart';
 import 'package:verdant/data/repositories/repositories.dart';
+import 'package:verdant/domain/group_plants.dart';
 import 'package:verdant/state/app_state.dart';
 
 AppState stateFor() => AppState(
@@ -62,5 +63,41 @@ void main() {
     await state.archiveHabit(first);
     await add(custom('custom-3', 'Stretch'));
     expect(state.activeHabits.single.templateId, 'custom-3');
+  });
+
+  test('habits on the same schedule share the plant the user picks', () async {
+    final state = stateFor();
+    addTearDown(state.dispose);
+    Future<Habit> add(String id, String species,
+            [HabitFrequency frequency = const HabitFrequency.daily()]) =>
+        state.addHabit(
+            template: custom(id, id),
+            speciesId: species,
+            potId: 'terracotta',
+            frequency: frequency);
+
+    final a = await add('a', 'rose');
+    expect(state.speciesOf(a), 'rose');
+    expect(state.existingPlant(HabitGroup.daily), 'rose');
+    expect(state.habitsSharing(HabitGroup.daily, exceptId: a.id), 0);
+
+    // Picking a different plant for a second daily habit changes it for both.
+    final b = await add('b', 'tulip');
+    expect(state.habitById(a.id)!.speciesId, 'tulip');
+    expect(state.speciesOf(b), 'tulip');
+    expect(state.habitsSharing(HabitGroup.daily), 2);
+
+    // Another schedule grows its own plant.
+    final w = await add('w', 'fern', const HabitFrequency.weekly(1));
+    expect(state.speciesOf(w), 'fern');
+    expect(state.speciesOf(a), 'tulip');
+
+    // A paused habit resumes onto whatever its group grows now.
+    await state.archiveHabit(state.habitById(a.id)!);
+    await state.updateHabit(
+        state.habitById(b.id)!.copyWith(speciesId: 'aloe'));
+    await state.restoreHabit(state.habitById(a.id)!);
+    expect(state.habitById(a.id)!.speciesId, 'aloe');
+    expect(state.speciesOf(b), 'aloe');
   });
 }

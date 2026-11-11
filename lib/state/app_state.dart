@@ -56,7 +56,25 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  String speciesOf(Habit h) => HabitGroup.of(h.frequency).speciesId;
+  /// The plant [h]'s group grows (shared by every habit in that group).
+  String speciesOf(Habit h) => speciesForGroup(HabitGroup.of(h.frequency));
+  String speciesForGroup(HabitGroup group) => groupSpecies(group, _habits);
+
+  /// The plant other active habits in [group] are already growing, or null
+  /// if a habit added to [group] would start a new plant.
+  String? existingPlant(HabitGroup group, {String? exceptId}) {
+    for (final h in activeHabits) {
+      if (h.id != exceptId && HabitGroup.of(h.frequency) == group) {
+        return h.speciesId;
+      }
+    }
+    return null;
+  }
+
+  /// How many other active habits share [group]'s plant.
+  int habitsSharing(HabitGroup group, {String? exceptId}) => activeHabits
+      .where((h) => h.id != exceptId && HabitGroup.of(h.frequency) == group)
+      .length;
   String potOf(Habit h) => HabitGroup.of(h.frequency).potId;
   GroupPlantCycle? cycleOf(Habit h) =>
       groupGarden.cycleFor(HabitGroup.of(h.frequency));
@@ -179,8 +197,8 @@ class AppState extends ChangeNotifier {
         plantsAtFinalStage: groupGarden.collection.length +
             groupGarden.current.where((c) => c.stageAt(plantToday) == 5).length,
         distinctSpecies: {
-          ...groupGarden.current.map((c) => c.group.speciesId),
-          ...groupGarden.collection.map((c) => c.group.speciesId)
+          ...groupGarden.current.map((c) => speciesForGroup(c.group)),
+          ...groupGarden.collection.map((c) => c.speciesId)
         }.length,
         perfectWeeks: base.perfectWeeks);
   }
@@ -265,7 +283,7 @@ class AppState extends ChangeNotifier {
     final group = HabitGroup.of(template.defaultFrequency);
     await addHabit(
         template: template,
-        speciesId: group.speciesId,
+        speciesId: existingPlant(group) ?? group.speciesId,
         potId: group.potId,
         frequency: template.defaultFrequency);
   }
@@ -293,7 +311,7 @@ class AppState extends ChangeNotifier {
       description: template.description,
       category: template.category,
       iconKey: template.iconKey,
-      speciesId: HabitGroup.of(frequency).speciesId,
+      speciesId: speciesId,
       potId: HabitGroup.of(frequency).potId,
       frequency: frequency,
       createdAt: _clock(),
@@ -302,6 +320,7 @@ class AppState extends ChangeNotifier {
     await garden.saveHabit(uid, h);
     groupGarden.sync(_habits, _completions, _clock());
     _habits = [..._habits, h];
+    await _shareGroupPlant(h);
     groupGarden.sync(_habits, _completions, _clock());
     await _awardBadges();
     notifyListeners();
@@ -309,12 +328,11 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> updateHabit(Habit updated) async {
-    updated = updated.copyWith(
-        speciesId: HabitGroup.of(updated.frequency).speciesId,
-        potId: HabitGroup.of(updated.frequency).potId);
+    updated = updated.copyWith(potId: HabitGroup.of(updated.frequency).potId);
     await garden.saveHabit(user!.uid, updated);
     groupGarden.sync(_habits, _completions, _clock());
     _habits = [for (final h in _habits) h.id == updated.id ? updated : h];
+    if (updated.isActive) await _shareGroupPlant(updated);
     groupGarden.sync(_habits, _completions, _clock());
     notifyListeners();
   }
@@ -326,7 +344,32 @@ class AppState extends ChangeNotifier {
           .any((other) => other.id != h.id && other.templateId == h.templateId)
       ? Future.error(
           const VerdantException('You are already tracking this habit.'))
-      : updateHabit(h.copyWith(clearArchived: true));
+      // A resumed habit joins whatever plant its group grows now.
+      : updateHabit(h.copyWith(
+          clearArchived: true,
+          speciesId: existingPlant(HabitGroup.of(h.frequency),
+                  exceptId: h.id) ??
+              h.speciesId));
+
+  /// Habits that share a rhythm grow one plant together. When a habit is
+  /// added, edited or resumed with a plant, move the rest of its group
+  /// (resting habits included) onto that plant so they stay in step.
+  Future<void> _shareGroupPlant(Habit source) async {
+    final group = HabitGroup.of(source.frequency);
+    final changed = [
+      for (final h in _habits)
+        if (h.id != source.id &&
+            HabitGroup.of(h.frequency) == group &&
+            h.speciesId != source.speciesId)
+          h.copyWith(speciesId: source.speciesId)
+    ];
+    if (changed.isEmpty) return;
+    for (final h in changed) {
+      await garden.saveHabit(user!.uid, h);
+    }
+    final byId = {for (final h in changed) h.id: h};
+    _habits = [for (final h in _habits) byId[h.id] ?? h];
+  }
 
   // ------------------------------------------------------------ completions
   Future<CompletionOutcome> complete(Habit h, {DateTime? day}) async {

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import '../../domain/group_plants.dart';
 import '../../domain/rules.dart';
 import '../models/models.dart';
 import 'repositories.dart';
@@ -233,7 +234,8 @@ class DemoSeed {
         description: desc,
         category: cat,
         iconKey: icon,
-        speciesId: species,
+        // Habits that share a rhythm share one plant.
+        speciesId: HabitGroup.of(freq).speciesId,
         potId: pot,
         frequency: freq,
         createdAt: Days.add(today, -ageDays),

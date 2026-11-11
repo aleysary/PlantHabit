@@ -58,7 +58,7 @@ class GardenScreen extends StatelessWidget {
                       width: 72,
                       height: 90,
                       child: PlantView(
-                          speciesId: plant.group.speciesId,
+                          speciesId: plant.speciesId,
                           stage: 5,
                           potId:
                               plant.care.flower ? 'blush' : plant.group.potId)),
@@ -69,7 +69,7 @@ class GardenScreen extends StatelessWidget {
                           children: [
                         Text(plant.group.label,
                             style: context.text.titleMedium),
-                        Text(PlantCatalog.byId(plant.group.speciesId).name,
+                        Text(PlantCatalog.byId(plant.speciesId).name,
                             style: context.text.bodySmall),
                         Text(
                             '${DateFormat.MMMd().format(plant.start)} – ${DateFormat.MMMd().format(DateTime(plant.finished.year, plant.finished.month, plant.finished.day - 1))}',

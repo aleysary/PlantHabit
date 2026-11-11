@@ -73,7 +73,8 @@ void main() {
         tester
             .widget<PlantView>(find.byKey(const ValueKey('current-daily')))
             .speciesId,
-        'sunflower');
+        // The daily habits here chose a monstera, so the shared plant is one.
+        'monstera');
     expect(find.textContaining('0 of 7 completed days'), findsOneWidget);
     now = DateTime(2026, 11, 1);
     state.refreshGroupPlants();
@@ -100,6 +101,7 @@ void main() {
     expect(state.groupGarden.collection.length, 1);
     expect(find.textContaining('0 of 7 completed days'), findsOneWidget);
     expect(state.groupGarden.collection.single.group.name, 'daily');
+    expect(state.groupGarden.collection.single.speciesId, 'monstera');
     expect(
         tester
             .widget<PlantView>(find.byKey(const ValueKey('current-daily')))

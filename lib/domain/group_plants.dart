@@ -4,12 +4,15 @@ import 'rules.dart';
 enum HabitGroup {
   daily('Daily habits', 'sunflower', HabitFrequency.daily()),
   several('A few times a week', 'cactus', HabitFrequency.weekly(3)),
-  weekly('Weekly Habits', 'olive', HabitFrequency.weekly(1)),
-  biweekly('Bi-Weekly Habits', 'bonsai', HabitFrequency.biweekly()),
-  monthly('Monthly Habits', 'cherry_blossom', HabitFrequency.monthly());
+  weekly('Weekly habits', 'olive', HabitFrequency.weekly(1)),
+  biweekly('Every two weeks', 'bonsai', HabitFrequency.biweekly()),
+  monthly('Monthly habits', 'cherry_blossom', HabitFrequency.monthly());
 
   const HabitGroup(this.label, this.speciesId, this.frequency);
   final String label;
+
+  /// The plant a group starts with. Users can pick a different one; see
+  /// [groupSpecies] for the plant a group actually grows.
   final String speciesId;
   final HabitFrequency frequency;
   String get potId => 'terracotta';
@@ -26,15 +29,15 @@ enum HabitGroup {
       };
   String get instructions => switch (this) {
         daily =>
-          'Complete every habit in your daily checklist to grow once a day. Seven completed days make the sunflower fully grown. Missed days pause progress.',
+          'Complete every daily habit to grow your plant once a day. Seven completed days make it fully grown. Missed days pause progress.',
         several =>
-          'Log each habit on the days you do it until its weekly target is met. Meeting every target grows the cactus. Four finished, fully completed weeks make it fully grown.',
+          'Log each habit on the days you do it until its weekly target is met. Meeting every target grows your plant. Four finished, fully completed weeks make it fully grown.',
         weekly =>
-          'Check off every habit this week to grow the olive tree. Four finished, fully completed weeks make it fully grown. Weeks reset on Monday.',
+          'Check off every habit this week to grow your plant. Four finished, fully completed weeks make it fully grown. Weeks reset on Monday.',
         biweekly =>
-          'Check off every habit in each shared two-week period to grow the bonsai. Four finished, fully completed fortnights make it fully grown.',
+          'Check off every habit in each two-week period to grow your plant. Four finished, fully completed fortnights make it fully grown.',
         monthly =>
-          'Each monthly habit you check grows the cherry blossom. Complete the whole checklist to make it fully grown. Collect it when ready; your next seed starts next month.',
+          'Each monthly habit you check grows your plant. Complete the whole checklist to make it fully grown. Collect it when ready; your next seed starts next month.',
       };
   static HabitGroup of(HabitFrequency frequency) => switch (frequency.type) {
         FrequencyType.daily => daily,
@@ -65,6 +68,20 @@ enum HabitGroup {
     final from = Days.add(anchor, (days / 14).floor() * 14);
     return (from, Days.add(from, 14));
   }
+}
+
+/// The plant [group] grows. Habits in a group share one plant, so this is the
+/// plant its active habits use (chosen by the user when creating or editing a
+/// habit), then a resting habit's, then the group's default.
+String groupSpecies(HabitGroup group, Iterable<Habit> habits,
+    {String? exceptId}) {
+  String? resting;
+  for (final h in habits) {
+    if (h.id == exceptId || HabitGroup.of(h.frequency) != group) continue;
+    if (h.isActive) return h.speciesId;
+    resting ??= h.speciesId;
+  }
+  return resting ?? group.speciesId;
 }
 
 class GroupCare {
@@ -263,8 +280,14 @@ class GroupPlantCycle {
 }
 
 class CollectedGroupPlant {
-  const CollectedGroupPlant(this.group, this.start, this.finished, this.care);
+  CollectedGroupPlant(this.group, this.start, this.finished, this.care,
+      [String? speciesId])
+      : speciesId = speciesId ?? group.speciesId;
   final HabitGroup group;
+
+  /// The plant that was grown, kept so the collection still shows it after
+  /// the group switches to a different plant.
+  final String speciesId;
   final DateTime start;
   final DateTime finished;
   final GroupCare care;
@@ -286,8 +309,12 @@ class GroupGarden {
           cycle != null &&
           !today.isBefore(cycle.end)) {
         if (cycle.ready) {
-          _collection.add(CollectedGroupPlant(group, cycle.start, cycle.end,
-              cycle.care(completions, Days.add(cycle.end, -1))));
+          _collection.add(CollectedGroupPlant(
+              group,
+              cycle.start,
+              cycle.end,
+              cycle.care(completions, Days.add(cycle.end, -1)),
+              groupSpecies(group, habits)));
         }
         _current.remove(group);
         cycle = null;
@@ -313,7 +340,7 @@ class GroupGarden {
     if (cycle == null || !cycle.ready) return false;
     final today = Days.of(now);
     _collection.add(CollectedGroupPlant(group, cycle.start, Days.add(today, 1),
-        cycle.care(completions, today)));
+        cycle.care(completions, today), groupSpecies(group, habits)));
     _current.remove(group);
     final (periodStart, periodEnd) = group.bounds(today, cycle.periodAnchor);
     final nextStart = group == HabitGroup.daily ||

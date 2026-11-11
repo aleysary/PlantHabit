@@ -188,7 +188,7 @@ class _HabitTile extends StatelessWidget {
   final bool muted;
   @override
   Widget build(BuildContext context) {
-    final sp = PlantCatalog.byId(HabitGroup.of(habit.frequency).speciesId);
+    final sp = PlantCatalog.byId(context.read<AppState>().speciesOf(habit));
     return VCard(
       onTap: onTap,
       padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),

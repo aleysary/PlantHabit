@@ -14,8 +14,8 @@ import '../../state/app_state.dart';
 import '../../domain/group_plants.dart';
 
 /// Stories 6 & 7: create a habit. Users write their own (blank template) or
-/// start from a suggestion; either way the name, description and rhythm are
-/// theirs to set before it is added.
+/// start from a suggestion; either way the name, rhythm and plant are theirs
+/// to set before it is added.
 class HabitSetupScreen extends StatefulWidget {
   const HabitSetupScreen({super.key, required this.template});
   final HabitTemplate template;
@@ -24,9 +24,11 @@ class HabitSetupScreen extends StatefulWidget {
 }
 
 class _HabitSetupScreenState extends State<HabitSetupScreen> {
-  String get _species => HabitGroup.of(_freq).speciesId;
-  String get _pot => HabitGroup.of(_freq).potId;
   late HabitFrequency _freq = widget.template.defaultFrequency;
+
+  /// A plant the user tapped; null means "the plant this rhythm already
+  /// grows", or its default for a rhythm with no habits yet.
+  String? _picked;
 
   late final _habitName = TextEditingController(text: widget.template.name);
   late final _description =
@@ -34,6 +36,19 @@ class _HabitSetupScreenState extends State<HabitSetupScreen> {
   bool _busy = false;
 
   bool get _fromScratch => widget.template.name.isEmpty;
+  HabitGroup get _group => HabitGroup.of(_freq);
+  String _species(AppState s) =>
+      _picked ?? s.existingPlant(_group) ?? _group.speciesId;
+
+  void _setFrequency(HabitFrequency next) {
+    final s = context.read<AppState>();
+    setState(() {
+      // Moving to a rhythm that already has a plant joins that plant;
+      // a pick only carries over to a rhythm that has none yet.
+      if (s.existingPlant(HabitGroup.of(next)) != null) _picked = null;
+      _freq = next;
+    });
+  }
 
   @override
   void dispose() {
@@ -51,24 +66,27 @@ class _HabitSetupScreenState extends State<HabitSetupScreen> {
     }
     setState(() => _busy = true);
     try {
+      final s = context.read<AppState>();
       final t = widget.template;
-      final h = await context.read<AppState>().addHabit(
-            template: HabitTemplate(
-              id: t.id,
-              name: name,
-              description: _description.text.trim(),
-              category: t.category,
-              iconKey: t.iconKey,
-              suggestedSpecies: _species,
-              defaultFrequency: _freq,
-            ),
-            speciesId: _species,
-            potId: _pot,
-            frequency: _freq,
-          );
+      final species = _species(s);
+      final h = await s.addHabit(
+        template: HabitTemplate(
+          id: t.id,
+          name: name,
+          description: _description.text.trim(),
+          category: t.category,
+          iconKey: t.iconKey,
+          suggestedSpecies: species,
+          defaultFrequency: _freq,
+        ),
+        speciesId: species,
+        potId: _group.potId,
+        frequency: _freq,
+      );
       if (!mounted) return;
       HapticFeedback.mediumImpact();
-      showToast(context, 'Added to ${context.read<AppState>().plantLabel(h)}.',
+      showToast(context,
+          '${h.name} added. It grows your ${PlantCatalog.byId(species).name}.',
           icon: Icons.spa_rounded);
       Navigator.of(context).pop();
     } on VerdantException catch (e) {
@@ -84,13 +102,15 @@ class _HabitSetupScreenState extends State<HabitSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.watch<AppState>();
+    final species = _species(s);
     return _HabitFormScaffold(
       eyebrow: _fromScratch ? 'Your own habit' : 'Make it yours',
       title: _fromScratch ? 'Create a habit' : widget.template.name,
-      species: _species,
-      pot: _pot,
+      species: species,
+      pot: _group.potId,
       previewStage: 5,
-      previewCaption: 'Your shared group plant',
+      previewCaption: 'Fully grown',
       body: [
         const Eyebrow('Habit name'),
         const SizedBox(height: 10),
@@ -101,17 +121,21 @@ class _HabitSetupScreenState extends State<HabitSetupScreen> {
             textCapitalization: TextCapitalization.sentences,
             decoration: const InputDecoration(
                 hintText: 'What would you like to do?')),
-        const SizedBox(height: 12),
+        const SizedBox(height: 4),
         TextField(
             controller: _description,
             maxLength: 240,
             maxLines: 2,
             decoration:
                 const InputDecoration(labelText: 'Description (optional)')),
-        const SizedBox(height: 26),
-        _FrequencyPicker(
-            value: _freq, onChanged: (v) => setState(() => _freq = v)),
-        const SizedBox(height: 26),
+        const SizedBox(height: 20),
+        _RhythmPicker(value: _freq, onChanged: _setFrequency),
+        const SizedBox(height: 28),
+        _PlantPicker(
+            selected: species,
+            sharing: s.habitsSharing(_group),
+            onChanged: (id) => setState(() => _picked = id)),
+        const SizedBox(height: 12),
       ],
       action: PrimaryButton(
           label: 'Add habit',
@@ -133,16 +157,32 @@ class HabitEditorScreen extends StatefulWidget {
 class _HabitEditorScreenState extends State<HabitEditorScreen> {
   late final Habit _original =
       context.read<AppState>().habitById(widget.habitId)!;
-  String get _pot => HabitGroup.of(_freq).potId;
   late HabitFrequency _freq = _original.frequency;
+  String? _picked;
   late final _name = TextEditingController(text: _original.name);
 
   bool _busy = false;
 
+  HabitGroup get _group => HabitGroup.of(_freq);
+  String _species(AppState s) =>
+      _picked ??
+      s.existingPlant(_group, exceptId: _original.id) ??
+      _original.speciesId;
+
+  void _setFrequency(HabitFrequency next) {
+    final s = context.read<AppState>();
+    setState(() {
+      if (s.existingPlant(HabitGroup.of(next), exceptId: _original.id) !=
+          null) {
+        _picked = null;
+      }
+      _freq = next;
+    });
+  }
+
   @override
   void dispose() {
     _name.dispose();
-
     super.dispose();
   }
 
@@ -161,8 +201,8 @@ class _HabitEditorScreenState extends State<HabitEditorScreen> {
         description: _original.description,
         category: _original.category,
         iconKey: _original.iconKey,
-        speciesId: _original.speciesId,
-        potId: _pot,
+        speciesId: _species(s),
+        potId: _group.potId,
         frequency: _freq,
         createdAt: _original.createdAt,
         plantName: _original.plantName,
@@ -187,7 +227,7 @@ class _HabitEditorScreenState extends State<HabitEditorScreen> {
       builder: (c) => AlertDialog(
         title: const Text('Stop tracking this habit?'),
         content: const Text(
-            'This habit will stop contributing care goals to its group plant. Its history is kept, and you can resume it from the group screen.'),
+            'This habit will stop contributing care goals to its plant. Its history is kept, and you can resume it from the Habits screen.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(c, false),
@@ -213,20 +253,21 @@ class _HabitEditorScreenState extends State<HabitEditorScreen> {
       if (mounted) setState(() => _busy = false);
     }
     if (!mounted) return;
-    showToast(context, 'Habit removed. Its history is safe.',
+    showToast(context, 'Habit paused. Its history is safe.',
         icon: Icons.bedtime_rounded);
     Navigator.of(context).popUntil((r) => r.isFirst);
   }
 
   @override
   Widget build(BuildContext context) {
-    final stage = context.watch<AppState>().stageOf(_original);
+    final s = context.watch<AppState>();
+    final species = _species(s);
     return _HabitFormScaffold(
       eyebrow: 'Edit habit',
       title: _original.name,
-      species: HabitGroup.of(_freq).speciesId,
-      pot: _pot,
-      previewStage: stage,
+      species: species,
+      pot: _group.potId,
+      previewStage: s.stageOf(_original),
       previewCaption: 'Current stage',
       body: [
         const Eyebrow('Habit name'),
@@ -234,12 +275,16 @@ class _HabitEditorScreenState extends State<HabitEditorScreen> {
         TextField(
             controller: _name,
             textCapitalization: TextCapitalization.sentences),
-        const SizedBox(height: 18),
-        const Text(
-            'Changing frequency moves this habit to its new shared plant. Its completion history is kept.'),
-        const SizedBox(height: 18),
-        _FrequencyPicker(
-            value: _freq, onChanged: (v) => setState(() => _freq = v)),
+        const SizedBox(height: 20),
+        _RhythmPicker(value: _freq, onChanged: _setFrequency),
+        const SizedBox(height: 8),
+        Text('Changing how often keeps your completion history.',
+            style: context.text.bodySmall),
+        const SizedBox(height: 28),
+        _PlantPicker(
+            selected: species,
+            sharing: s.habitsSharing(_group, exceptId: _original.id),
+            onChanged: (id) => setState(() => _picked = id)),
         const SizedBox(height: 30),
         if (_original.isActive)
           OutlinedButton.icon(
@@ -297,7 +342,7 @@ class _HabitFormScaffold extends StatelessWidget {
                   Text(title, style: context.text.headlineLarge),
                   const SizedBox(height: 18),
                   Container(
-                    height: 280,
+                    height: 220,
                     decoration: BoxDecoration(
                       borderRadius:
                           BorderRadius.circular(VerdantTheme.radiusLg),
@@ -353,65 +398,48 @@ class _HabitFormScaffold extends StatelessWidget {
   }
 }
 
-class _FrequencyPicker extends StatelessWidget {
-  const _FrequencyPicker({required this.value, required this.onChanged});
+/// How often: four plain choices, plus times per week for weekly habits.
+class _RhythmPicker extends StatelessWidget {
+  const _RhythmPicker({required this.value, required this.onChanged});
   final HabitFrequency value;
   final ValueChanged<HabitFrequency> onChanged;
+
+  static const _options = [
+    (FrequencyType.daily, 'Every day'),
+    (FrequencyType.weekly, 'Weekly'),
+    (FrequencyType.biweekly, 'Every 2 weeks'),
+    (FrequencyType.monthly, 'Monthly'),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final weekly = value.type == FrequencyType.weekly;
-    final n = weekly ? value.timesPerWeek : 3;
+    final n = weekly ? value.timesPerWeek : 1;
+    final group = HabitGroup.of(value);
+    final rule = switch (value.type) {
+      FrequencyType.daily => 'Log once every day.',
+      FrequencyType.weekly => n == 1
+          ? 'Log once a week. Resets every Monday.'
+          : 'Log on $n different days a week. Resets every Monday.',
+      FrequencyType.biweekly => 'Log once in each two-week period.',
+      FrequencyType.monthly => 'Log once a month. Resets on the 1st.',
+    };
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Eyebrow('Target frequency'),
+      const Eyebrow('How often?'),
       const SizedBox(height: 12),
-      Text('Choose your rhythm and see your fully grown plant.',
-          style: context.text.bodySmall),
-      const SizedBox(height: 12),
-      LayoutBuilder(builder: (context, constraints) {
-        final width = ((constraints.maxWidth - 10) / 2).clamp(0.0, 220.0);
-        return Wrap(spacing: 10, runSpacing: 10, children: [
-          for (final group in HabitGroup.values)
-            SizedBox(
-                width: width,
-                child: Semantics(
-                  selected: HabitGroup.of(value) == group,
-                  button: true,
-                  child: VCard(
-                    color: HabitGroup.of(value) == group
-                        ? context.v.raised
-                        : context.v.card,
-                    padding: const EdgeInsets.all(12),
-                    onTap: () => onChanged(
-                        group == HabitGroup.several && weekly && n > 1
-                            ? HabitFrequency.weekly(n)
-                            : group.frequency),
-                    child: Column(children: [
-                      ExcludeSemantics(
-                          child: SizedBox(
-                              height: 100,
-                              width: 80,
-                              child: PlantView(
-                                  speciesId: group.speciesId,
-                                  potId: group.potId,
-                                  stage: 5))),
-                      const SizedBox(height: 6),
-                      Text(group.label,
-                          textAlign: TextAlign.center, softWrap: true),
-                      const SizedBox(height: 4),
-                      Text(PlantCatalog.byId(group.speciesId).name,
-                          style: context.text.bodySmall,
-                          textAlign: TextAlign.center),
-                      const SizedBox(height: 4),
-                      Text('Fully grown · ${group.maturityLabel}',
-                          style: context.text.bodySmall,
-                          textAlign: TextAlign.center),
-                      if (HabitGroup.of(value) == group)
-                        const Icon(Icons.check_circle_rounded, size: 18),
-                    ]),
-                  ),
-                )),
-        ]);
-      }),
+      Wrap(spacing: 8, runSpacing: 8, children: [
+        for (final (type, label) in _options)
+          ChoiceChip(
+            label: Text(label),
+            selected: value.type == type,
+            onSelected: (_) => onChanged(switch (type) {
+              FrequencyType.daily => const HabitFrequency.daily(),
+              FrequencyType.weekly => HabitFrequency.weekly(n),
+              FrequencyType.biweekly => const HabitFrequency.biweekly(),
+              FrequencyType.monthly => const HabitFrequency.monthly(),
+            }),
+          ),
+      ]),
       AnimatedSize(
         duration: const Duration(milliseconds: 220),
         child: weekly
@@ -427,6 +455,7 @@ class _FrequencyPicker extends StatelessWidget {
                     RoundIconButton(
                         icon: Icons.remove_rounded,
                         size: 38,
+                        tooltip: 'Fewer times',
                         onTap: n > 1
                             ? () => onChanged(HabitFrequency.weekly(n - 1))
                             : null),
@@ -438,6 +467,7 @@ class _FrequencyPicker extends StatelessWidget {
                     RoundIconButton(
                         icon: Icons.add_rounded,
                         size: 38,
+                        tooltip: 'More times',
                         onTap: n < 6
                             ? () => onChanged(HabitFrequency.weekly(n + 1))
                             : null),
@@ -446,19 +476,86 @@ class _FrequencyPicker extends StatelessWidget {
               )
             : const SizedBox(width: double.infinity),
       ),
+      const SizedBox(height: 10),
+      Text(
+        '$rule Its plant is fully grown after '
+        '${group.maturityLabel.toLowerCase()}.',
+        style: context.text.bodySmall,
+      ),
+    ]);
+  }
+}
+
+/// Every plant in the catalogue, to choose what this habit grows.
+///
+/// Habits with the same rhythm share one plant, so if others already grow
+/// one, that plant is preselected and picking another changes it for all.
+class _PlantPicker extends StatelessWidget {
+  const _PlantPicker(
+      {required this.selected, required this.sharing, required this.onChanged});
+  final String selected;
+  final int sharing;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final v = context.v;
+    final name = PlantCatalog.byId(selected).name;
+    final all = PlantCatalog.species;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Eyebrow('Your plant'),
       const SizedBox(height: 8),
       Text(
-        switch (value.type) {
-          FrequencyType.weekly =>
-            'Log up to $n times a week (once per day). Resets every Monday.',
-          FrequencyType.daily =>
-            'Log once every day. Each day you show up, your plant grows.',
-          FrequencyType.biweekly =>
-            'Log once in each shared 14-day group period.',
-          FrequencyType.monthly =>
-            'Log once per calendar month. Resets on the first of each month.',
-        },
-        style: context.text.bodySmall,
+          sharing == 0
+              ? 'Pick the plant this habit grows. Scroll for all ${all.length}.'
+              : 'Joins the $name you grow with $sharing other '
+                  '${sharing == 1 ? 'habit' : 'habits'} on this schedule. '
+                  'Pick another to change it for all of them.',
+          style: context.text.bodySmall),
+      const SizedBox(height: 12),
+      SizedBox(
+        height: 150,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: all.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 10),
+          itemBuilder: (context, i) {
+            final sp = all[i];
+            final isSelected = sp.id == selected;
+            return Semantics(
+              button: true,
+              selected: isSelected,
+              label: sp.name,
+              child: VCard(
+                onTap: () => onChanged(sp.id),
+                color: isSelected ? v.raised : v.card,
+                padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+                child: SizedBox(
+                  width: 88,
+                  child: Column(children: [
+                    Expanded(
+                        child: ExcludeSemantics(
+                            child: PlantView(
+                                speciesId: sp.id,
+                                stage: 5,
+                                potId: 'terracotta'))),
+                    const SizedBox(height: 6),
+                    Text(sp.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: context.text.labelMedium),
+                    Icon(Icons.check_circle_rounded,
+                        size: 16,
+                        color: isSelected
+                            ? context.colors.primary
+                            : Colors.transparent),
+                  ]),
+                ),
+              ),
+            );
+          },
+        ),
       ),
     ]);
   }

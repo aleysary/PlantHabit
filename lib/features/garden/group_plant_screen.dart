@@ -23,7 +23,8 @@ class GroupPlantCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = context.watch<AppState>();
     final cycle = s.groupGarden.cycleFor(group);
-    final species = PlantCatalog.byId(group.speciesId);
+    final speciesId = s.speciesForGroup(group);
+    final species = PlantCatalog.byId(speciesId);
     final checklist = cycle?.checklist(s.completions, s.plantToday);
     final waiting = cycle != null && cycle.start.isAfter(s.plantToday);
     return VCard(
@@ -45,7 +46,7 @@ class GroupPlantCard extends StatelessWidget {
                   child: PlantView(
                       key: ValueKey(
                           '${selectionPreview ? 'preview' : 'current'}-${group.name}'),
-                      speciesId: group.speciesId,
+                      speciesId: speciesId,
                       potId: group.potId,
                       stage: selectionPreview
                           ? 5
