@@ -6,3 +6,19 @@ build/
 *.iml
 .idea/
 node_modules/
+
+# Flutter generated files
+.dart_tool/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Private environment files
+.env
+.env.*
+!.env.example
+
+# Signing credentials
+android/key.properties
+*.jks
+*.keystore

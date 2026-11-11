@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 /// How often a habit should be completed.
-enum FrequencyType { daily, weekly }
+enum FrequencyType { daily, weekly, biweekly, monthly }
 
 @immutable
 class HabitFrequency {
@@ -9,27 +9,44 @@ class HabitFrequency {
       : type = FrequencyType.daily,
         timesPerWeek = 7;
   const HabitFrequency.weekly(this.timesPerWeek) : type = FrequencyType.weekly;
+  const HabitFrequency.biweekly()
+      : type = FrequencyType.biweekly,
+        timesPerWeek = 1;
+  const HabitFrequency.monthly()
+      : type = FrequencyType.monthly,
+        timesPerWeek = 1;
 
   final FrequencyType type;
 
   /// For weekly habits: how many completions per (Mon–Sun) week.
   final int timesPerWeek;
 
-  String get label => type == FrequencyType.daily
-      ? 'Every day'
-      : timesPerWeek == 1
-          ? 'Once a week'
-          : '$timesPerWeek× a week';
+  String get label => type == FrequencyType.biweekly
+      ? 'Every two weeks'
+      : type == FrequencyType.monthly
+          ? 'Once a month'
+          : type == FrequencyType.daily
+              ? 'Every day'
+              : timesPerWeek == 1
+                  ? 'Once a week'
+                  : '$timesPerWeek× a week';
 
-  Map<String, dynamic> toJson() => {'type': type.name, 'timesPerWeek': timesPerWeek};
+  Map<String, dynamic> toJson() =>
+      {'type': type.name, 'timesPerWeek': timesPerWeek};
 
-  factory HabitFrequency.fromJson(Map<String, dynamic> j) => j['type'] == 'daily'
-      ? const HabitFrequency.daily()
-      : HabitFrequency.weekly((j['timesPerWeek'] as num?)?.toInt() ?? 3);
+  factory HabitFrequency.fromJson(Map<String, dynamic> j) =>
+      switch (j['type']) {
+        'daily' => const HabitFrequency.daily(),
+        'biweekly' => const HabitFrequency.biweekly(),
+        'monthly' => const HabitFrequency.monthly(),
+        _ => HabitFrequency.weekly((j['timesPerWeek'] as num?)?.toInt() ?? 3),
+      };
 
   @override
   bool operator ==(Object other) =>
-      other is HabitFrequency && other.type == type && other.timesPerWeek == timesPerWeek;
+      other is HabitFrequency &&
+      other.type == type &&
+      other.timesPerWeek == timesPerWeek;
 
   @override
   int get hashCode => Object.hash(type, timesPerWeek);
@@ -122,10 +139,13 @@ class Habit {
         iconKey: (j['iconKey'] as String?) ?? 'spa',
         speciesId: j['speciesId'] as String,
         potId: (j['potId'] as String?) ?? 'terracotta',
-        frequency: HabitFrequency.fromJson(Map<String, dynamic>.from(j['frequency'] as Map)),
+        frequency: HabitFrequency.fromJson(
+            Map<String, dynamic>.from(j['frequency'] as Map)),
         createdAt: DateTime.parse(j['createdAt'] as String),
         plantName: j['plantName'] as String?,
-        archivedAt: j['archivedAt'] == null ? null : DateTime.parse(j['archivedAt'] as String),
+        archivedAt: j['archivedAt'] == null
+            ? null
+            : DateTime.parse(j['archivedAt'] as String),
       );
 }
 
@@ -133,7 +153,11 @@ class Habit {
 /// edits and removal of the habit.
 @immutable
 class Completion {
-  const Completion({required this.id, required this.habitId, required this.day, required this.recordedAt});
+  const Completion(
+      {required this.id,
+      required this.habitId,
+      required this.day,
+      required this.recordedAt});
 
   final String id;
   final String habitId;
@@ -163,9 +187,11 @@ class EarnedBadge {
   final String badgeId;
   final DateTime earnedAt;
 
-  Map<String, dynamic> toJson() => {'badgeId': badgeId, 'earnedAt': earnedAt.toIso8601String()};
-  factory EarnedBadge.fromJson(Map<String, dynamic> j) =>
-      EarnedBadge(badgeId: j['badgeId'] as String, earnedAt: DateTime.parse(j['earnedAt'] as String));
+  Map<String, dynamic> toJson() =>
+      {'badgeId': badgeId, 'earnedAt': earnedAt.toIso8601String()};
+  factory EarnedBadge.fromJson(Map<String, dynamic> j) => EarnedBadge(
+      badgeId: j['badgeId'] as String,
+      earnedAt: DateTime.parse(j['earnedAt'] as String));
 }
 
 @immutable
@@ -184,7 +210,8 @@ class UserProfile {
   final DateTime createdAt;
   final bool isAdmin;
 
-  String get initials => username.isEmpty ? '?' : username.substring(0, 1).toUpperCase();
+  String get initials =>
+      username.isEmpty ? '?' : username.substring(0, 1).toUpperCase();
 
   Map<String, dynamic> toJson() => {
         'uid': uid,
@@ -268,7 +295,8 @@ class AppSettings {
         themeMode: (j['themeMode'] as String?) ?? 'system',
         accent: (j['accent'] as String?) ?? 'moss',
         compact: (j['compact'] as bool?) ?? false,
-        gardenLayout: j['gardenLayout'] == 'list' ? GardenLayout.list : GardenLayout.grid,
+        gardenLayout:
+            j['gardenLayout'] == 'list' ? GardenLayout.list : GardenLayout.grid,
         showDailyQuote: (j['showDailyQuote'] as bool?) ?? true,
         showStreakCard: (j['showStreakCard'] as bool?) ?? true,
         showWeekStrip: (j['showWeekStrip'] as bool?) ?? true,

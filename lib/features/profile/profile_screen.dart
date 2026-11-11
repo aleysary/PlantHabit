@@ -7,9 +7,7 @@ import '../../core/theme/verdant_theme.dart';
 import '../../core/widgets/plant_view.dart';
 import '../../core/widgets/ui.dart';
 import '../../state/app_state.dart';
-import '../badges/badges_screen.dart';
 import '../catalog/plant_catalog_screen.dart';
-import '../share/share_sheet.dart';
 import 'appearance_screen.dart';
 import 'updates_screen.dart';
 
@@ -21,7 +19,6 @@ class ProfileScreen extends StatelessWidget {
     final s = context.watch<AppState>();
     final u = s.user;
     final v = context.v;
-    final st = s.stats;
     void push(Widget w) => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => w));
 
     return SafeArea(
@@ -57,22 +54,9 @@ class ProfileScreen extends StatelessWidget {
               ),
             ]),
           ),
-          const SizedBox(height: 12),
-          Row(children: [
-            Expanded(child: _MiniStat('${st.activeHabits}', 'Plants')),
-            const SizedBox(width: 10),
-            Expanded(child: _MiniStat('${st.totalCompletions}', 'Waterings')),
-            const SizedBox(width: 10),
-            Expanded(child: _MiniStat('${s.earnedBadges.length}', 'Badges')),
-          ]),
           const SizedBox(height: 24),
           _Group(children: [
-            _MenuRow(icon: Icons.workspace_premium_rounded, title: 'Badges & milestones', onTap: () => push(const BadgesScreen())),
             _MenuRow(icon: Icons.local_florist_rounded, title: 'Plant catalogue', onTap: () => push(const PlantCatalogScreen())),
-            _MenuRow(icon: Icons.ios_share_rounded, title: 'Share progress', onTap: () => showShareSheet(context)),
-          ]),
-          const SizedBox(height: 12),
-          _Group(children: [
             _MenuRow(icon: Icons.palette_rounded, title: 'Appearance & layout', subtitle: 'Theme, colours, home widgets', onTap: () => push(const AppearanceScreen())),
             if (u?.isAdmin ?? false)
               _MenuRow(icon: Icons.system_update_rounded, title: 'App updates', subtitle: 'Version ${s.updates.currentVersion}', onTap: () => push(const UpdatesScreen())),
@@ -107,20 +91,6 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
-}
-
-class _MiniStat extends StatelessWidget {
-  const _MiniStat(this.value, this.label);
-  final String value;
-  final String label;
-  @override
-  Widget build(BuildContext context) => VCard(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(value, style: context.text.headlineSmall),
-          Text(label, style: context.text.bodySmall),
-        ]),
-      );
 }
 
 class _Group extends StatelessWidget {

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import '../../domain/group_plants.dart';
 import '../../domain/rules.dart';
 import '../models/models.dart';
 import 'repositories.dart';
@@ -97,13 +98,18 @@ class _Account {
 }
 
 class InMemoryGardenRepository implements GardenRepository {
+  /// When false, the demo account starts with an empty garden, exactly like a
+  /// brand-new user. When true it gets ~5 weeks of sample habits and history.
+  InMemoryGardenRepository({this.seedDemoGarden = true});
+  final bool seedDemoGarden;
+
   final Map<String, Map<String, Habit>> _habits = {};
   final Map<String, Map<String, Completion>> _completions = {};
   final Map<String, Map<String, EarnedBadge>> _badges = {};
   final Map<String, AppSettings> _settings = {};
 
   void _ensureSeeded(String uid) {
-    if (uid != 'demo-user' || _habits.containsKey(uid)) return;
+    if (!seedDemoGarden || uid != 'demo-user' || _habits.containsKey(uid)) return;
     final seed = DemoSeed.build();
     _habits[uid] = {for (final h in seed.habits) h.id: h};
     _completions[uid] = {for (final c in seed.completions) c.id: c};
@@ -228,7 +234,8 @@ class DemoSeed {
         description: desc,
         category: cat,
         iconKey: icon,
-        speciesId: species,
+        // Habits that share a rhythm share one plant.
+        speciesId: HabitGroup.of(freq).speciesId,
         potId: pot,
         frequency: freq,
         createdAt: Days.add(today, -ageDays),

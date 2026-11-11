@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme/verdant_colors.dart';
 import '../../core/theme/verdant_theme.dart';
-import '../../core/widgets/plant_view.dart';
 import '../../core/widgets/ui.dart';
 import '../../data/catalog/badge_catalog.dart';
 import '../../data/catalog/habit_catalog.dart';
@@ -42,7 +41,9 @@ class _ProgressScreenState extends State<ProgressScreen> {
     final s = context.watch<AppState>();
     final today = Days.today();
     final start = Days.add(today, -(_period.days - 1));
-    final inPeriod = s.completions.where((c) => !c.day.isBefore(start) && !c.day.isAfter(today)).toList();
+    final inPeriod = s.completions
+        .where((c) => !c.day.isBefore(start) && !c.day.isAfter(today))
+        .toList();
 
     // expected completions in the period → completion rate
     var expected = 0.0;
@@ -50,25 +51,49 @@ class _ProgressScreenState extends State<ProgressScreen> {
       final from = h.createdAt.isAfter(start) ? Days.of(h.createdAt) : start;
       final days = today.difference(from).inDays + 1;
       if (days <= 0) continue;
-      expected += h.frequency.type == FrequencyType.daily ? days : days * h.frequency.timesPerWeek / 7;
+      expected += switch (h.frequency.type) {
+        FrequencyType.daily => days.toDouble(),
+        FrequencyType.weekly => days * h.frequency.timesPerWeek / 7,
+        FrequencyType.biweekly => days / 14,
+        FrequencyType.monthly => days / 30.4375,
+      };
     }
-    final rate = expected == 0 ? 0.0 : (inPeriod.length / expected).clamp(0.0, 1.0);
+    // Only habits counted in `expected` may count towards the rate; otherwise
+    // completions from stopped habits push "On target" above reality.
+    final activeIds = s.activeHabits.map((h) => h.id).toSet();
+    final onTarget = inPeriod.where((c) => activeIds.contains(c.habitId)).length;
+    final rate = expected == 0 ? 0.0 : (onTarget / expected).clamp(0.0, 1.0);
     final stats = s.stats;
 
     // chart buckets
     final buckets = <_Bucket>[];
     if (_period == Period.quarter) {
       var ws = Days.weekStart(start);
+      int? lastMonth;
       while (!ws.isAfter(today)) {
         final we = Days.add(ws, 7);
-        buckets.add(_Bucket(DateFormat('MMM d').format(ws), inPeriod.where((c) => !c.day.isBefore(ws) && c.day.isBefore(we)).length, Days.same(ws, Days.weekStart(today))));
+        // 13 weekly bars are too narrow for "Aug 10" labels, which ran into
+        // each other; label only the first bar of each month instead.
+        final label = ws.month == lastMonth ? '' : DateFormat('MMM').format(ws);
+        lastMonth = ws.month;
+        buckets.add(_Bucket(
+            label,
+            inPeriod
+                .where((c) => !c.day.isBefore(ws) && c.day.isBefore(we))
+                .length,
+            Days.same(ws, Days.weekStart(today))));
         ws = we;
       }
     } else {
       for (var i = 0; i < _period.days; i++) {
         final d = Days.add(start, i);
-        final label = _period == Period.week ? DateFormat('E').format(d).substring(0, 2) : (d.day % 5 == 0 ? '${d.day}' : '');
-        buckets.add(_Bucket(label, inPeriod.where((c) => Days.same(c.day, d)).length, Days.same(d, today)));
+        final label = _period == Period.week
+            ? DateFormat('E').format(d).substring(0, 2)
+            : (d.day % 5 == 0 ? '${d.day}' : '');
+        buckets.add(_Bucket(
+            label,
+            inPeriod.where((c) => Days.same(c.day, d)).length,
+            Days.same(d, today)));
       }
     }
 
@@ -81,42 +106,69 @@ class _ProgressScreenState extends State<ProgressScreen> {
         children: [
           Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Eyebrow('Insights'),
-                const SizedBox(height: 8),
-                Text('Progress', style: context.text.displaySmall),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Eyebrow('Insights'),
+                    const SizedBox(height: 8),
+                    Text('Progress', style: context.text.displaySmall),
+                  ]),
             ),
-            RoundIconButton(icon: Icons.ios_share_rounded, tooltip: 'Share progress', onTap: () => showShareSheet(context)),
+            RoundIconButton(
+                icon: Icons.ios_share_rounded,
+                tooltip: 'Share progress',
+                onTap: () => showShareSheet(context)),
           ]),
           const SizedBox(height: 18),
-          PillTabs<Period>(values: Period.values, selected: _period, label: (p) => p.label, onChanged: (p) => setState(() => _period = p)),
+          PillTabs<Period>(
+              values: Period.values,
+              selected: _period,
+              label: (p) => p.label,
+              onChanged: (p) => setState(() => _period = p)),
           const SizedBox(height: 16),
           Row(children: [
-            Expanded(child: _Stat(value: '${inPeriod.length}', label: 'Completions')),
+            Expanded(
+                child:
+                    _Stat(value: '${inPeriod.length}', label: 'Completions')),
             const SizedBox(width: 10),
-            Expanded(child: _Stat(value: '${(rate * 100).round()}%', label: 'On target')),
+            Expanded(
+                child: _Stat(
+                    value: '${(rate * 100).round()}%', label: 'On target')),
             const SizedBox(width: 10),
-            Expanded(child: _Stat(value: '${stats.longestStreak}d', label: 'Best streak')),
+            Expanded(
+                child: _Stat(
+                    value: '${stats.longestStreak}d', label: 'Best streak')),
           ]),
           const SizedBox(height: 12),
           VCard(
             padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                Expanded(child: Text(_period == Period.quarter ? 'Weekly completions' : 'Daily completions', style: context.text.titleMedium)),
-                Text('${DateFormat('MMM d').format(start)} – ${DateFormat('MMM d').format(today)}', style: context.text.bodySmall),
+                Expanded(
+                    child: Text(
+                        _period == Period.quarter
+                            ? 'Weekly Habit Completions'
+                            : 'Daily Habit Completions',
+                        style: context.text.titleMedium)),
+                Text(
+                    '${DateFormat('MMM d').format(start)} – ${DateFormat('MMM d').format(today)}',
+                    style: context.text.bodySmall),
               ]),
               const SizedBox(height: 18),
               SizedBox(height: 150, child: _BarChart(buckets: buckets)),
             ]),
           ),
           const SizedBox(height: 28),
-          SectionHeader('This week’s goals', eyebrow: 'Story so far'),
+          const SectionHeader('Current goals', eyebrow: 'Story so far'),
           const SizedBox(height: 12),
           if (s.activeHabits.isEmpty)
-            Text('Add a habit to start tracking goals.', style: context.text.bodyMedium?.copyWith(color: context.v.muted)),
-          ...s.activeHabits.map((h) => Padding(padding: const EdgeInsets.only(bottom: 10), child: _GoalRow(habit: h))),
+            Text('Add a habit to start tracking goals.',
+                style:
+                    context.text.bodyMedium?.copyWith(color: context.v.muted)),
+          ...s.activeHabits.map((h) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _GoalRow(habit: h))),
           const SizedBox(height: 18),
           const _BadgesTeaser(),
           const SizedBox(height: 28),
@@ -124,18 +176,23 @@ class _ProgressScreenState extends State<ProgressScreen> {
           const SizedBox(height: 6),
           ..._historyRows(context, s, history.take(_historyShown).toList()),
           if (history.length > _historyShown)
-            TextButton(onPressed: () => setState(() => _historyShown += 20), child: const Text('Show more')),
+            TextButton(
+                onPressed: () => setState(() => _historyShown += 20),
+                child: const Text('Show more')),
           if (history.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Text('Your completion history will appear here.', style: context.text.bodyMedium?.copyWith(color: context.v.muted)),
+              child: Text('Your habit completion history will appear here.',
+                  style: context.text.bodyMedium
+                      ?.copyWith(color: context.v.muted)),
             ),
         ],
       ),
     );
   }
 
-  List<Widget> _historyRows(BuildContext context, AppState s, List<Completion> items) {
+  List<Widget> _historyRows(
+      BuildContext context, AppState s, List<Completion> items) {
     final out = <Widget>[];
     DateTime? lastDay;
     for (final c in items) {
@@ -155,10 +212,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
       out.add(Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Row(children: [
-          SizedBox(width: 34, height: 40, child: PlantView(speciesId: h.speciesId, stage: s.stageOf(h), potId: h.potId)),
+          IconSquare(HabitCatalog.icon(h.iconKey), size: 34),
           const SizedBox(width: 12),
           Expanded(child: Text(h.name, style: context.text.bodyLarge)),
-          Icon(HabitCatalog.icon(h.iconKey), size: 16, color: context.v.muted),
+          Text(h.frequency.label, style: context.text.bodySmall),
         ]),
       ));
     }
@@ -179,7 +236,8 @@ class _BarChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final v = context.v;
-    final maxV = math.max(1, buckets.fold<int>(0, (m, b) => math.max(m, b.value)));
+    final maxV =
+        math.max(1, buckets.fold<int>(0, (m, b) => math.max(m, b.value)));
     final thin = buckets.length > 14;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -191,7 +249,10 @@ class _BarChart extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  if (!thin && b.value > 0) Text('${b.value}', style: context.text.labelSmall?.copyWith(color: v.text, letterSpacing: 0)),
+                  if (!thin && b.value > 0)
+                    Text('${b.value}',
+                        style: context.text.labelSmall
+                            ?.copyWith(color: v.text, letterSpacing: 0)),
                   const SizedBox(height: 4),
                   TweenAnimationBuilder<double>(
                     tween: Tween(begin: 0, end: b.value / maxV),
@@ -200,7 +261,9 @@ class _BarChart extends StatelessWidget {
                     builder: (context, f, _) => Container(
                       height: math.max(3.0, 104 * f),
                       decoration: BoxDecoration(
-                        color: b.current ? v.highlight : (b.value == 0 ? v.line : context.colors.primary),
+                        color: b.current
+                            ? v.highlight
+                            : (b.value == 0 ? v.line : context.colors.primary),
                         borderRadius: BorderRadius.circular(thin ? 3 : 8),
                       ),
                     ),
@@ -208,7 +271,12 @@ class _BarChart extends StatelessWidget {
                   const SizedBox(height: 8),
                   SizedBox(
                     height: 14,
-                    child: Text(b.label, maxLines: 1, overflow: TextOverflow.visible, softWrap: false, style: context.text.labelSmall?.copyWith(letterSpacing: 0, fontSize: thin ? 9 : 10.5)),
+                    child: Text(b.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.visible,
+                        softWrap: false,
+                        style: context.text.labelSmall?.copyWith(
+                            letterSpacing: 0, fontSize: thin ? 9 : 10.5)),
                   ),
                 ],
               ),
@@ -240,9 +308,21 @@ class _GoalRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = context.watch<AppState>();
-    final done = s.weekCount(habit);
-    // daily habits aim for 7 per Mon–Sun week
-    final goal = habit.frequency.type == FrequencyType.daily ? 7 : habit.frequency.timesPerWeek;
+    final done = s.periodCount(habit);
+    // Daily habits aim for one per day of this Mon–Sun week that the habit
+    // existed for, so a habit added on Thursday aims for 4, not an impossible 7.
+    final weekStart = Days.weekStart(s.plantToday);
+    final created = Days.of(habit.createdAt);
+    final from = created.isAfter(weekStart) ? created : weekStart;
+    // UTC dates so a daylight-saving change doesn't shorten the count.
+    final offset = DateTime.utc(from.year, from.month, from.day)
+        .difference(
+            DateTime.utc(weekStart.year, weekStart.month, weekStart.day))
+        .inDays;
+    final daysThisWeek = (7 - offset).clamp(1, 7);
+    final goal = habit.frequency.type == FrequencyType.daily
+        ? daysThisWeek
+        : habit.frequency.timesPerWeek;
     final ratio = (done / goal).clamp(0.0, 1.0);
     final met = done >= goal;
     return VCard(
@@ -251,10 +331,16 @@ class _GoalRow extends StatelessWidget {
         IconSquare(HabitCatalog.icon(habit.iconKey), size: 40),
         const SizedBox(width: 12),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              Expanded(child: Text(habit.name, style: context.text.titleSmall, overflow: TextOverflow.ellipsis)),
-              Text('$done of $goal', style: context.text.labelLarge?.copyWith(color: met ? context.colors.primary : context.v.text)),
+              Expanded(
+                  child: Text('${habit.name} · ${habit.frequency.label}',
+                      style: context.text.titleSmall,
+                      overflow: TextOverflow.ellipsis)),
+              Text('$done of $goal',
+                  style: context.text.labelLarge?.copyWith(
+                      color: met ? context.colors.primary : context.v.text)),
             ]),
             const SizedBox(height: 8),
             ProgressBar(value: ratio, color: met ? VerdantColors.fern : null),
@@ -272,19 +358,25 @@ class _BadgesTeaser extends StatelessWidget {
     final s = context.watch<AppState>();
     final v = context.v;
     final earned = s.earnedBadges.length;
-    final recent = BadgeCatalog.badges.where((b) => s.hasBadge(b.id)).take(4).toList();
+    final recent =
+        BadgeCatalog.badges.where((b) => s.hasBadge(b.id)).take(4).toList();
     return VCard(
-      onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const BadgesScreen())),
+      onTap: () => Navigator.of(context)
+          .push(MaterialPageRoute<void>(builder: (_) => const BadgesScreen())),
       color: v.hero,
       border: false,
       child: Row(children: [
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Eyebrow('Badges', color: v.onHero.o(0.6)),
             const SizedBox(height: 4),
-            Text('$earned of ${BadgeCatalog.badges.length} earned', style: context.text.headlineSmall?.copyWith(color: v.onHero)),
+            Text('$earned of ${BadgeCatalog.badges.length} earned',
+                style: context.text.headlineSmall?.copyWith(color: v.onHero)),
             const SizedBox(height: 4),
-            Text('See milestones and what’s next', style: context.text.bodySmall?.copyWith(color: v.onHero.o(0.6))),
+            Text('See your milestones and see what’s next',
+                style:
+                    context.text.bodySmall?.copyWith(color: v.onHero.o(0.6))),
           ]),
         ),
         SizedBox(
@@ -292,7 +384,10 @@ class _BadgesTeaser extends StatelessWidget {
           height: 56,
           child: Stack(children: [
             for (var i = 0; i < recent.length; i++)
-              Positioned(left: i * 18.0, child: BadgeMedal(icon: recent[i].icon, tier: recent[i].tier, size: 52)),
+              Positioned(
+                  left: i * 18.0,
+                  child: BadgeMedal(
+                      icon: recent[i].icon, tier: recent[i].tier, size: 52)),
           ]),
         ),
       ]),
