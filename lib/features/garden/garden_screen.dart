@@ -26,8 +26,10 @@ class GardenScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Text('Your garden', style: context.text.displaySmall),
             const SizedBox(height: 12),
-            const Text(
-                'Daily plants mature after seven completed days. Weekly and bi-weekly plants need four finished, fully completed cycles. Monthly plants grow with each checked habit and mature when the whole checklist is done. Collect your fully grown plants here.'),
+            Text(
+                'Each rhythm grows its own shared plant. Tap one to see how it grows.',
+                style: context.text.bodyMedium
+                    ?.copyWith(color: context.v.muted)),
             const SizedBox(height: 22),
             for (final group in HabitGroup.values)
               if (cycles.any((cycle) => cycle.group == group) ||
@@ -39,7 +41,7 @@ class GardenScreen extends StatelessWidget {
               const Padding(
                   padding: EdgeInsets.symmetric(vertical: 16),
                   child: Text(
-                      'Add a habit from the Habits tab to plant a group seed.')),
+                      'Create a habit from the Habits button to plant a seed.')),
             const SizedBox(height: 12),
             SectionHeader('Your collection',
                 eyebrow: '${collection.length} finished cycles'),

@@ -60,8 +60,8 @@ test/rules_test.dart
 | 2 | Log in + error on bad credentials | `LoginScreen` |
 | 3 | Dashboard after login | `AuthGate` → `HomeShell` → `TodayScreen` |
 | 4 | Log out | `ProfileScreen` → Log out (clears state & routes) |
-| 5 | Browse built-in habits | `HabitLibraryScreen` (search + categories) |
-| 6 | Add a habit | `HabitSetupScreen` → `AppState.addHabit` (creates a seed-stage plant) |
+| 5 | Browse built-in habits | `HabitLibraryScreen` → "Need ideas?" (a short list of 6 starting points; `HabitCatalog.suggestions`) |
+| 6 | Add a habit | "Create your own habit" → `HabitSetupScreen` → `AppState.addHabit` (ideas open in the same form, prefilled and editable) |
 | 7 | Target frequency | `_FrequencyPicker` (daily / N× per week) |
 | 8 | Edit a habit (keeps history) | `HabitEditorScreen` |
 | 9 | Remove habit (keeps history) | `HabitEditorScreen` → "Remove from tracking" → Garden ▸ Resting |

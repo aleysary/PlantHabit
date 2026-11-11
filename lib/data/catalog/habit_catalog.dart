@@ -289,4 +289,30 @@ class HabitCatalog {
     }
     return null;
   }
+
+  /// The few starting points shown under "Need ideas?" in the habit screen.
+  /// Users are encouraged to write their own; these are just examples, one
+  /// or two per rhythm, and open in the editor so they can be personalised.
+  static const suggestionIds = [
+    'hydrate',
+    'read',
+    'workout',
+    'weekly-plan',
+    'fortnight-budget',
+    'monthly-reflect',
+  ];
+
+  static List<HabitTemplate> get suggestions =>
+      [for (final id in suggestionIds) byId(id)!];
+
+  /// A blank template for a habit the user writes from scratch.
+  static HabitTemplate blank() => HabitTemplate(
+        id: 'custom-${DateTime.now().microsecondsSinceEpoch}',
+        name: '',
+        description: '',
+        category: 'Personal',
+        iconKey: 'spa',
+        suggestedSpecies: 'sunflower',
+        defaultFrequency: const HabitFrequency.daily(),
+      );
 }

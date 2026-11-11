@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme/verdant_colors.dart';
 import '../../core/theme/verdant_theme.dart';
-import '../../core/widgets/plant_view.dart';
 import '../../core/widgets/ui.dart';
 import '../../data/catalog/badge_catalog.dart';
 import '../../data/catalog/habit_catalog.dart';
@@ -59,8 +58,11 @@ class _ProgressScreenState extends State<ProgressScreen> {
         FrequencyType.monthly => days / 30.4375,
       };
     }
-    final rate =
-        expected == 0 ? 0.0 : (inPeriod.length / expected).clamp(0.0, 1.0);
+    // Only habits counted in `expected` may count towards the rate; otherwise
+    // completions from stopped habits push "On target" above reality.
+    final activeIds = s.activeHabits.map((h) => h.id).toSet();
+    final onTarget = inPeriod.where((c) => activeIds.contains(c.habitId)).length;
+    final rate = expected == 0 ? 0.0 : (onTarget / expected).clamp(0.0, 1.0);
     final stats = s.stats;
 
     // chart buckets
@@ -205,16 +207,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
       out.add(Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Row(children: [
-          SizedBox(
-              width: 34,
-              height: 40,
-              child: PlantView(
-                  speciesId: s.speciesOf(h),
-                  stage: s.stageOf(h),
-                  potId: s.potOf(h))),
+          IconSquare(HabitCatalog.icon(h.iconKey), size: 34),
           const SizedBox(width: 12),
           Expanded(child: Text(h.name, style: context.text.bodyLarge)),
-          Icon(HabitCatalog.icon(h.iconKey), size: 16, color: context.v.muted),
+          Text(h.frequency.label, style: context.text.bodySmall),
         ]),
       ));
     }
@@ -308,9 +304,19 @@ class _GoalRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = context.watch<AppState>();
     final done = s.periodCount(habit);
-    // daily habits aim for 7 per Mon–Sun week
+    // Daily habits aim for one per day of this Mon–Sun week that the habit
+    // existed for, so a habit added on Thursday aims for 4, not an impossible 7.
+    final weekStart = Days.weekStart(s.plantToday);
+    final created = Days.of(habit.createdAt);
+    final from = created.isAfter(weekStart) ? created : weekStart;
+    // UTC dates so a daylight-saving change doesn't shorten the count.
+    final offset = DateTime.utc(from.year, from.month, from.day)
+        .difference(
+            DateTime.utc(weekStart.year, weekStart.month, weekStart.day))
+        .inDays;
+    final daysThisWeek = (7 - offset).clamp(1, 7);
     final goal = habit.frequency.type == FrequencyType.daily
-        ? 7
+        ? daysThisWeek
         : habit.frequency.timesPerWeek;
     final ratio = (done / goal).clamp(0.0, 1.0);
     final met = done >= goal;

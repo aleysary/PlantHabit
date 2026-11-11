@@ -281,6 +281,11 @@ class AppState extends ChangeNotifier {
     if (activeHabits.any((h) => h.templateId == template.id)) {
       throw const VerdantException('You’re already tracking this habit.');
     }
+    final wanted = template.name.trim().toLowerCase();
+    if (activeHabits.any((h) => h.name.trim().toLowerCase() == wanted)) {
+      throw const VerdantException(
+          'You already have a habit with that name.');
+    }
     final h = Habit(
       id: 'h${DateTime.now().microsecondsSinceEpoch}',
       templateId: template.id,
@@ -316,7 +321,7 @@ class AppState extends ChangeNotifier {
 
   /// Stops tracking but keeps every completion (story 9).
   Future<void> archiveHabit(Habit h) =>
-      updateHabit(h.copyWith(archivedAt: DateTime.now()));
+      updateHabit(h.copyWith(archivedAt: _clock()));
   Future<void> restoreHabit(Habit h) => activeHabits
           .any((other) => other.id != h.id && other.templateId == h.templateId)
       ? Future.error(

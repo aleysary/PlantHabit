@@ -13,6 +13,7 @@ import '../../domain/rules.dart';
 import '../../state/app_state.dart';
 import '../garden/celebrations.dart';
 import '../garden/plant_detail_screen.dart';
+import '../habits/habit_editor_screen.dart';
 import '../habits/habit_library_screen.dart';
 
 class TodayScreen extends StatelessWidget {
@@ -78,8 +79,7 @@ class TodayScreen extends StatelessWidget {
                   const _StreakRow()
                 ],
                 const SizedBox(height: 28),
-                SectionHeader('Today’s care',
-                    eyebrow: '${s.doneTodayCount} of ${habits.length} done'),
+                const SectionHeader('Today’s care'),
                 const SizedBox(height: 12),
               ],
             ]),
@@ -298,45 +298,21 @@ class HabitCareTile extends StatelessWidget {
     final s = context.watch<AppState>();
     final v = context.v;
     final done = s.isDoneToday(habit);
-    final stage = s.stageOf(habit);
+    final species = PlantCatalog.byId(s.speciesOf(habit));
 
     return VCard(
-      padding: const EdgeInsets.fromLTRB(10, 10, 14, 10),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
           builder: (_) => PlantDetailScreen(habitId: habit.id))),
       child: Row(
         children: [
-          SizedBox(
-            width: 62,
-            height: 72,
-            child: AnimatedScale(
-                scale: 0.65 + 0.35 * s.plantProgress(habit),
-                duration: const Duration(milliseconds: 500),
-                curve: Curves.easeOutBack,
-                child: PlantTile(
-                  speciesId: s.speciesOf(habit),
-                  stage: stage,
-                  potId: s.potOf(habit),
-                  backdrop: v.backdropFor(s.potOf(habit)),
-                  radius: 14,
-                  padding: const EdgeInsets.fromLTRB(4, 6, 4, 2),
-                )),
-          ),
+          IconSquare(HabitCatalog.icon(habit.iconKey),
+              color: species.tint.o(0.14), iconColor: species.tint),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(children: [
-                  Icon(HabitCatalog.icon(habit.iconKey),
-                      size: 14, color: v.muted),
-                  const SizedBox(width: 6),
-                  Flexible(
-                      child: Text(s.plantLabel(habit).toUpperCase(),
-                          style: context.text.labelSmall,
-                          overflow: TextOverflow.ellipsis)),
-                ]),
-                const SizedBox(height: 4),
                 AnimatedDefaultTextStyle(
                   duration: const Duration(milliseconds: 200),
                   style: context.text.titleMedium!.copyWith(
@@ -347,14 +323,8 @@ class HabitCareTile extends StatelessWidget {
                   child: Text(habit.name,
                       maxLines: 2, overflow: TextOverflow.ellipsis),
                 ),
-                const SizedBox(height: 8),
-                Row(children: [
-                  Expanded(
-                      child: ProgressBar(
-                          value: s.plantProgress(habit), height: 4)),
-                  const SizedBox(width: 10),
-                  Text(cadenceLabel(s, habit), style: context.text.bodySmall),
-                ]),
+                const SizedBox(height: 4),
+                Text(cadenceLabel(s, habit), style: context.text.bodySmall),
               ],
             ),
           ),
@@ -498,14 +468,19 @@ class _EmptyGarden extends StatelessWidget {
               style: context.text.headlineMedium, textAlign: TextAlign.center),
           const SizedBox(height: 8),
           Text(
-              'Pick a habit to start its group plant. Complete your checklists and watch your garden grow.',
+              'Create your first habit to plant its seed. Keep it up and watch your garden grow.',
               textAlign: TextAlign.center,
               style: context.text.bodyLarge?.copyWith(color: v.muted)),
           const SizedBox(height: 20),
           FilledButton(
             onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                builder: (_) => HabitSetupScreen(template: HabitCatalog.blank()))),
+            child: const Text('Create your first habit'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
                 builder: (_) => const HabitLibraryScreen())),
-            child: const Text('Browse habits'),
+            child: const Text('Or start from an idea'),
           ),
         ],
       ),

@@ -13,12 +13,12 @@ import '../../data/repositories/repositories.dart';
 import '../../state/app_state.dart';
 import '../../domain/group_plants.dart';
 
-/// Stories 6 & 7: add a built-in habit, choosing its plant, pot and target.
+/// Stories 6 & 7: create a habit. Users write their own (blank template) or
+/// start from a suggestion; either way the name, description and rhythm are
+/// theirs to set before it is added.
 class HabitSetupScreen extends StatefulWidget {
-  const HabitSetupScreen(
-      {super.key, required this.template, this.custom = false});
+  const HabitSetupScreen({super.key, required this.template});
   final HabitTemplate template;
-  final bool custom;
   @override
   State<HabitSetupScreen> createState() => _HabitSetupScreenState();
 }
@@ -28,9 +28,12 @@ class _HabitSetupScreenState extends State<HabitSetupScreen> {
   String get _pot => HabitGroup.of(_freq).potId;
   late HabitFrequency _freq = widget.template.defaultFrequency;
 
-  final _habitName = TextEditingController();
-  final _description = TextEditingController();
+  late final _habitName = TextEditingController(text: widget.template.name);
+  late final _description =
+      TextEditingController(text: widget.template.description);
   bool _busy = false;
+
+  bool get _fromScratch => widget.template.name.isEmpty;
 
   @override
   void dispose() {
@@ -41,24 +44,24 @@ class _HabitSetupScreenState extends State<HabitSetupScreen> {
 
   Future<void> _save() async {
     if (_busy) return;
-    if (widget.custom && _habitName.text.trim().isEmpty) {
+    final name = _habitName.text.trim();
+    if (name.isEmpty) {
       showToast(context, 'Give your habit a name.');
       return;
     }
     setState(() => _busy = true);
     try {
+      final t = widget.template;
       final h = await context.read<AppState>().addHabit(
-            template: widget.custom
-                ? HabitTemplate(
-                    id: widget.template.id,
-                    name: _habitName.text.trim(),
-                    description: _description.text.trim(),
-                    category: widget.template.category,
-                    iconKey: widget.template.iconKey,
-                    suggestedSpecies: _species,
-                    defaultFrequency: _freq,
-                  )
-                : widget.template,
+            template: HabitTemplate(
+              id: t.id,
+              name: name,
+              description: _description.text.trim(),
+              category: t.category,
+              iconKey: t.iconKey,
+              suggestedSpecies: _species,
+              defaultFrequency: _freq,
+            ),
             speciesId: _species,
             potId: _pot,
             frequency: _freq,
@@ -67,7 +70,7 @@ class _HabitSetupScreenState extends State<HabitSetupScreen> {
       HapticFeedback.mediumImpact();
       showToast(context, 'Added to ${context.read<AppState>().plantLabel(h)}.',
           icon: Icons.spa_rounded);
-      Navigator.of(context).popUntil((r) => r.isFirst);
+      Navigator.of(context).pop();
     } on VerdantException catch (e) {
       if (mounted) showToast(context, e.message);
     } catch (_) {
@@ -82,34 +85,30 @@ class _HabitSetupScreenState extends State<HabitSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return _HabitFormScaffold(
-      eyebrow: widget.template.category,
-      title: widget.custom ? 'Create a habit' : widget.template.name,
+      eyebrow: _fromScratch ? 'Your own habit' : 'Make it yours',
+      title: _fromScratch ? 'Create a habit' : widget.template.name,
       species: _species,
       pot: _pot,
       previewStage: 5,
       previewCaption: 'Your shared group plant',
       body: [
-        if (widget.custom) ...[
-          const Eyebrow('Habit name'),
-          const SizedBox(height: 10),
-          TextField(
-              controller: _habitName,
-              maxLength: 80,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                  hintText: 'What would you like to do?')),
-          const SizedBox(height: 12),
-          TextField(
-              controller: _description,
-              maxLength: 240,
-              maxLines: 2,
-              decoration:
-                  const InputDecoration(labelText: 'Description (optional)')),
-          const SizedBox(height: 26),
-        ],
-        const Text(
-            'Your frequency selects the shared group plant. Daily: seven completed days. Weekly and bi-weekly: four completed cycles. Monthly: finish the whole checklist.'),
-        const SizedBox(height: 18),
+        const Eyebrow('Habit name'),
+        const SizedBox(height: 10),
+        TextField(
+            controller: _habitName,
+            autofocus: _fromScratch,
+            maxLength: 80,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: const InputDecoration(
+                hintText: 'What would you like to do?')),
+        const SizedBox(height: 12),
+        TextField(
+            controller: _description,
+            maxLength: 240,
+            maxLines: 2,
+            decoration:
+                const InputDecoration(labelText: 'Description (optional)')),
+        const SizedBox(height: 26),
         _FrequencyPicker(
             value: _freq, onChanged: (v) => setState(() => _freq = v)),
         const SizedBox(height: 26),
