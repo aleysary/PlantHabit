@@ -11,3 +11,4 @@ analyzer:
     # Copy these into lib/ after adding the Firebase packages (docs/FIREBASE.md).
     - firebase_templates/**
     - tool/**
+    - build/**
