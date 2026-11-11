@@ -69,10 +69,15 @@ class _ProgressScreenState extends State<ProgressScreen> {
     final buckets = <_Bucket>[];
     if (_period == Period.quarter) {
       var ws = Days.weekStart(start);
+      int? lastMonth;
       while (!ws.isAfter(today)) {
         final we = Days.add(ws, 7);
+        // 13 weekly bars are too narrow for "Aug 10" labels, which ran into
+        // each other; label only the first bar of each month instead.
+        final label = ws.month == lastMonth ? '' : DateFormat('MMM').format(ws);
+        lastMonth = ws.month;
         buckets.add(_Bucket(
-            DateFormat('MMM d').format(ws),
+            label,
             inPeriod
                 .where((c) => !c.day.isBefore(ws) && c.day.isBefore(we))
                 .length,

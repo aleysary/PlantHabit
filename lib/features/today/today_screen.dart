@@ -271,10 +271,22 @@ class _StreakRow extends StatelessWidget {
               IconSquare(icon,
                   size: 40, color: color.o(0.16), iconColor: color),
               const SizedBox(width: 12),
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(value, style: context.text.titleLarge),
-                Text(label, style: context.text.bodySmall),
-              ]),
+              // Expanded + ellipsis so long labels or big numbers can't
+              // overflow the card on narrow phones.
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(value, style: context.text.titleLarge)),
+                      Text(label,
+                          style: context.text.bodySmall,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                    ]),
+              ),
             ]),
           ),
         );
@@ -283,7 +295,7 @@ class _StreakRow extends StatelessWidget {
           'Current streak', VerdantColors.terracotta),
       const SizedBox(width: 10),
       tile(Icons.water_drop_rounded, '${st.totalCompletions}',
-          'Total waterings', context.colors.primary),
+          'Waterings', context.colors.primary),
     ]);
   }
 }
