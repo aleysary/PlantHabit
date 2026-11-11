@@ -141,8 +141,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
                 Expanded(
                     child: Text(
                         _period == Period.quarter
-                            ? 'Weekly completions'
-                            : 'Daily completions',
+                            ? 'Weekly Habit Completions'
+                            : 'Daily Habit Completions',
                         style: context.text.titleMedium)),
                 Text(
                     '${DateFormat('MMM d').format(start)} – ${DateFormat('MMM d').format(today)}',
@@ -175,7 +175,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
           if (history.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Text('Your completion history will appear here.',
+              child: Text('Your habit completion history will appear here.',
                   style: context.text.bodyMedium
                       ?.copyWith(color: context.v.muted)),
             ),
@@ -363,7 +363,7 @@ class _BadgesTeaser extends StatelessWidget {
             Text('$earned of ${BadgeCatalog.badges.length} earned',
                 style: context.text.headlineSmall?.copyWith(color: v.onHero)),
             const SizedBox(height: 4),
-            Text('See milestones and what’s next',
+            Text('See your milestones and see what’s next',
                 style:
                     context.text.bodySmall?.copyWith(color: v.onHero.o(0.6))),
           ]),
