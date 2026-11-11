@@ -1,0 +1,39 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Setup: generate platform folders",
+      "detail": "One-time: creates android/, ios/, web/ etc. Keeps lib/ and pubspec.",
+      "type": "shell",
+      "command": "flutter create . --org com.verdant --project-name verdant",
+      "problemMatcher": []
+    },
+    {
+      "label": "Setup: flutter pub get",
+      "type": "shell",
+      "command": "flutter pub get",
+      "problemMatcher": []
+    },
+    {
+      "label": "Garden: analyze my files",
+      "detail": "Lints the garden screens, plant renderer, growth rules and plant catalog.",
+      "type": "shell",
+      "command": "flutter analyze lib/features/garden lib/core/widgets/plant_view.dart lib/domain/rules.dart lib/data/catalog/plant_catalog.dart",
+      "problemMatcher": []
+    },
+    {
+      "label": "Garden: test growth rules",
+      "type": "shell",
+      "command": "flutter test test/rules_test.dart",
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Garden: regenerate plant & pot art",
+      "detail": "Rewrites assets/plants and assets/pots from tool/plant_art (needs Node).",
+      "type": "shell",
+      "command": "node tool/plant_art/generate.mjs",
+      "problemMatcher": []
+    }
+  ]
+}

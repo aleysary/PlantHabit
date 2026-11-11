@@ -1,0 +1,43 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Garden only (no login)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main_garden.dart"
+    },
+    {
+      "name": "PlantHabit (debug)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart"
+    },
+    {
+      "name": "PlantHabit (Chrome)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "deviceId": "chrome"
+    },
+    {
+      "name": "PlantHabit (profile)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "profile"
+    },
+    {
+      "name": "Tests: growth & completion rules",
+      "request": "launch",
+      "type": "dart",
+      "program": "test/rules_test.dart"
+    },
+    {
+      "name": "Tests: all",
+      "request": "launch",
+      "type": "dart",
+      "program": "test/"
+    }
+  ]
+}
